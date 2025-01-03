@@ -1,4 +1,4 @@
-# auth.py
+# auth_route.py
 from fastapi import Request, HTTPException, status, Depends
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 import jwt

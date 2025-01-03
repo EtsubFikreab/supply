@@ -1,4 +1,6 @@
-from fastapi import APIRouter, Form, HTTPException
+from fastapi import APIRouter, Form, HTTPException, Depends
+
+from auth import get_current_user
 from db import supabase
 
 router = r = APIRouter()
@@ -54,3 +56,7 @@ async def gmail():
         return access_token
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
+
+@router.get("/current_user")
+async def add_employee_form(current_user: dict = Depends(get_current_user)):
+    return current_user

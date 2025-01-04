@@ -3,7 +3,7 @@ from fastapi import APIRouter, Form, HTTPException, Depends
 from auth import get_current_user
 from db import supabase
 
-router = r = APIRouter()
+auth_router = r = APIRouter()
 
 
 @r.post("/signup")

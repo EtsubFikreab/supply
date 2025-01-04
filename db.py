@@ -1,4 +1,6 @@
 import os
+
+from sqlmodel import create_engine, Session
 from supabase import create_client, Client
 from dotenv import load_dotenv
 
@@ -15,3 +17,8 @@ if not all([SUPABASE_URL, SUPABASE_KEY, SUPABASE_JWT_SECRET, POSTGRES]):
 
 # Initialize Supabase client
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
+engine = create_engine(POSTGRES)
+
+def get_session():
+    with Session(engine) as session:
+        yield session

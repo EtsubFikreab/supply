@@ -7,6 +7,7 @@ from auth import get_current_user
 from db import get_session
 from model.organization import Organization
 from model.product import Product
+from model.warehouse import Warehouse
 
 SessionDep = Annotated[Session, Depends(get_session)]
 UserDep = Annotated[dict, Depends(get_current_user)]
@@ -14,7 +15,7 @@ UserDep = Annotated[dict, Depends(get_current_user)]
 general_router = gr = APIRouter()
 
 
-@gr.get("/get_organization")
+@gr.get("/organization")
 async def get_user_organization(session: SessionDep, current_user: UserDep):
     try:
         user_organization_id = current_user.get("organization_id")
@@ -26,7 +27,17 @@ async def get_user_organization(session: SessionDep, current_user: UserDep):
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
-@gr.get("/get_products")
+@gr.get("/warehouse")
+async def get_user_warehouse(session: SessionDep, current_user: UserDep):
+    try:
+        user_organization_id = current_user.get("organization_id")
+        warehouses = session.exec(select(Warehouse).where(
+            Warehouse.organization_id == user_organization_id)).all()
+        return warehouses
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@gr.get("/products")
 async def get_all_products(session: SessionDep, current_user: UserDep):
     try:
         user_organization_id = current_user.get("organization_id")

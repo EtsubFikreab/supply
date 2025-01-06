@@ -13,7 +13,7 @@ UserDep = Annotated[dict, Depends(get_current_user)]
 procurement_routes = pr = APIRouter()
 
 @pr.get("/rfq")
-def get_request_for_quotation(session: SessionDep, current_user: UserDep):
+async def get_request_for_quotation(session: SessionDep, current_user: UserDep):
     if current_user.get("user_role") not in ["admin", "procurement"]:
         return HTTPException(status_code=400, detail="You do not have the required permissions to view request for quotation")
     return session.exec(select(RFQ)).all()

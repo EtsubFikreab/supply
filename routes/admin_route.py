@@ -7,6 +7,7 @@ from auth import get_current_user
 from db import get_session
 from model.organization import Organization
 from model.product import Product
+from model.warehouse import Warehouse
 
 SessionDep = Annotated[Session, Depends(get_session)]
 UserDep = Annotated[dict, Depends(get_current_user)]
@@ -50,26 +51,48 @@ async def update_organization_by_admin(session: SessionDep, current_user: UserDe
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
-@ar.post("/create_product", description="Organization ID and User ID will be fetched from the JWT token by default")
+@ar.post("/create_product", description="Organization ID and User ID will be fetched from the JWT token by default, Product ID will also be changed to null by default")
 async def create_product(session: SessionDep, current_user: UserDep, new_product: Product = Form(...)):
     if current_user.get("user_role") != "admin":
         return HTTPException(status_code=400, detail="You do not have the required permissions to create a product.")
     try:
         # if not set to none, cause error with the id autogenerate and foreign key constraints
-        if new_product.id == "":
-            new_product.id = None
+        new_product.id = None
         if new_product.warehouse_id == "":
             new_product.warehouse_id = None
 
         if current_user.get("organization_id") == "":
             raise HTTPException(
                 status_code=400, detail="User does not have an organization_id")
-        else:
-            new_product.organization_id = current_user.get("organization_id")
+        
+        new_product.organization_id = current_user.get("organization_id")
         new_product.user_id = current_user.get("sub")
         session.add(new_product)
         session.commit()
         session.refresh(new_product)
+        
         return new_product
+        
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@ar.post("/create_warehouse", description="Organization ID and User ID will be fetched from the JWT token by default, Warehouse ID will also be changed to null by default")
+async def create_warehouse(session: SessionDep, current_user: UserDep, new_warehouse: Warehouse = Form(...)):
+    if current_user.get("user_role") != "admin":
+        return HTTPException(status_code=400, detail="You do not have the required permissions to create a warehouse.")
+    try:
+        new_warehouse.id = None
+        if current_user.get("organization_id") == "":
+            raise HTTPException(
+                status_code=400, detail="User does not have an organization_id")
+        
+        new_warehouse.organization_id = current_user.get("organization_id")
+        new_warehouse.user_id = current_user.get("sub")
+        session.add(new_warehouse)
+        session.commit()
+        session.refresh(new_warehouse)
+        
+        return new_warehouse
+
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))

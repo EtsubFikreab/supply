@@ -7,7 +7,7 @@ class Organization(SQLModel, table=True):
     __tablename__ = "organization"
 
     id: Optional[int] = Field(default=None, primary_key=True)
-    user_id: uuid.UUID = Field(foreign_key="user_roles.user_id", nullable=False)  # Foreign key to auth.users
+    user_id: Optional[uuid.UUID] = Field(foreign_key="user_roles.user_id", default=None)  # Foreign key to auth.users
     org_name: str = Field(max_length=255, nullable=False)
     address: Optional[str] = None
     phone_number: Optional[str] = Field(default=None, max_length=15)

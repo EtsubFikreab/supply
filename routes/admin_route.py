@@ -6,24 +6,47 @@ from sqlmodel import select, Session
 from auth import get_current_user
 from db import get_session
 from model.organization import Organization
+from model.product import Product
 
 SessionDep = Annotated[Session, Depends(get_session)]
+UserDep = Annotated[dict, Depends(get_current_user)]
 
 admin_routes = ar = APIRouter()
 
-@ar.post("/admin/get_organization")
-async def get_user_organization(session: SessionDep, current_user: dict = Depends(get_current_user)):
-    user_organization_id = current_user.get("organization_id")
-    organizations = session.exec(select(Organization).where(Organization.id == user_organization_id)).all()
-    if not organizations:
-        return  HTTPException(status_code=400, detail="The organization associated with this user does not exist. Please ensure you have a valid organization.")
-    return organizations
-
-@ar.post("/admin/create_organization")
-async def create_organization_by_admin(session: SessionDep, current_user: dict = Depends(get_current_user), new_organization: Organization = Form(...)):
+@ar.post("/create_organization")
+async def create_organization_by_admin(session: SessionDep, current_user: UserDep, new_organization: Organization = Form(...)):
     if current_user.get("user_role") != "admin":
         return HTTPException(status_code=400, detail="You do not have the required permissions to create an organization.")
-    session.add(new_organization)
-    session.commit()
-    session.refresh(new_organization)
-    return new_organization
+    try:
+        new_organization.user_id = current_user.get("sub")
+        new_organization.id = None
+        session.add(new_organization)
+        session.commit()
+        session.refresh(new_organization)
+        return new_organization
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@ar.post("/create_product", description="When sending the form you can ignore the organizationID and UserID because it will be retrieved from the token by default")
+async def create_product(session: SessionDep, current_user: UserDep, new_product: Product = Form(...)):
+    if current_user.get("user_role") != "admin":
+        return HTTPException(status_code=400, detail="You do not have the required permissions to create a product.")
+    try:
+        # if not set to none, cause error with the id autogenerate and foreign key constraints
+        if new_product.id == "":
+            new_product.id = None
+        if new_product.warehouse_id == "":
+            new_product.warehouse_id = None
+
+        if current_user.get("organization_id") == "":
+            raise HTTPException(
+                status_code=400, detail="User does not have an organization_id")
+        else:
+            new_product.organization_id = current_user.get("organization_id")
+        new_product.user_id = current_user.get("sub")
+        session.add(new_product)
+        session.commit()
+        session.refresh(new_product)
+        return new_product
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))

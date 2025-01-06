@@ -48,7 +48,7 @@ async def logout(access_token: str = Form(...)):
 
 
 @r.post("/oauth")
-async def oauth_token(email: str = Form(...), password: str = Form(...)):
+async def oauth_signin_and_signup(email: str = Form(...), password: str = Form(...)):
     try:
         auth_response = supabase.auth.sign_in_with_password({
             'email': email,

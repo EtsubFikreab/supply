@@ -27,7 +27,30 @@ async def create_organization_by_admin(session: SessionDep, current_user: UserDe
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
-@ar.post("/create_product", description="When sending the form you can ignore the organizationID and UserID because it will be retrieved from the token by default")
+@ar.post("/update_organization", description="Organization ID and User ID will be fetched from the JWT token by default")
+async def update_organization_by_admin(session: SessionDep, current_user: UserDep, new_organization: Organization = Form(...)):
+    if current_user.get("user_role") != "admin":
+        return HTTPException(status_code=400, detail="You do not have the required permissions to create an organization.")
+    try:
+        db_organization = session.exec(select(Organization).where(Organization.id == current_user.get("organization_id"))).first()
+        if not db_organization:
+            return HTTPException(status_code=400, detail="Organization does not exist.")
+        
+        db_organization.org_name = new_organization.org_name
+        db_organization.address = new_organization.address
+        db_organization.phone_number = new_organization.phone_number
+        db_organization.email = new_organization.email
+        db_organization.website = new_organization.website
+        db_organization.updated_at = new_organization.updated_at
+
+        session.add(db_organization)
+        session.commit()
+        session.refresh(db_organization)
+        return db_organization
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@ar.post("/create_product", description="Organization ID and User ID will be fetched from the JWT token by default")
 async def create_product(session: SessionDep, current_user: UserDep, new_product: Product = Form(...)):
     if current_user.get("user_role") != "admin":
         return HTTPException(status_code=400, detail="You do not have the required permissions to create a product.")

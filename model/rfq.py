@@ -11,7 +11,7 @@ class RFQ(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     created_by: Optional[uuid.UUID] = Field(foreign_key="user_roles.user_id", default=None)
     organization_id: Optional[int] = Field(foreign_key="organization.id", default=None)
-    product_id: int = Field(foreign_key="products.id", nullable=False)
+    product_id: int = Field(foreign_key="product.id", nullable=False)
     created_at: datetime = Field(default_factory=datetime.utcnow)
     required_quantity: float = Field(nullable=False)
     description: Optional[str] = Field(max_length=500, default=None)

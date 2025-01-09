@@ -1,3 +1,7 @@
+import smtplib
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+
 from fastapi import Depends, HTTPException, Form
 from typing import Annotated
 from fastapi.routing import APIRouter
@@ -5,12 +9,13 @@ from sqlmodel import select, Session
 
 from auth import get_current_user
 from db import get_session
+from model.person import Supplier
 from model.rfq import RFQ, Quotation
 
 SessionDep = Annotated[Session, Depends(get_session)]
 UserDep = Annotated[dict, Depends(get_current_user)]
 
-procurement_routes = pr = APIRouter()
+procurement_router = pr = APIRouter()
 
 
 @pr.get("/rfq")
@@ -134,3 +139,42 @@ async def delete_quotation(session: SessionDep, current_user: UserDep, quotation
     session.delete(db_quotation)
     session.commit()
     return {"message": "Quotation deleted successfully."}
+
+@pr.post("/select_quotation")
+async def select_quotation(session: SessionDep, current_user: UserDep, quotation_id: int):
+    if current_user.get("user_role") not in ["admin", "procurement"]:
+        return HTTPException(status_code=400, detail="You do not have the required permissions to select a quotation")
+    try:
+        db_quotation = session.exec(select(Quotation).where(Quotation.id == quotation_id)).first()
+        if not db_quotation:
+            return HTTPException(status_code=400, detail="Quotation does not exist.")
+        db_quotation.selected = True
+        session.add(db_quotation)
+        session.commit()
+        session.refresh(db_quotation)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    # Send email to supplier
+    try:
+        supplier = session.exec(select(Supplier).where(Supplier.id == db_quotation.supplier_id)).first()
+        if supplier and supplier.email:
+            sender_email = "procurement@supplychain.com"
+            receiver_email = supplier.email
+            subject = "Quotation Selected"
+            body = f"Dear {supplier.company_name},\n\nYour quotation with ID {quotation_id} has been selected.\n\nBest regards,\nYour Company"
+            
+            message = MIMEMultipart()
+            message["From"] = sender_email
+            message["To"] = receiver_email
+            message["Subject"] = subject
+            message.attach(MIMEText(body, "plain"))
+            
+            with smtplib.SMTP("localhost", 587) as server:
+                server.starttls()
+                server.login(sender_email, "your_password")
+                server.sendmail(sender_email, receiver_email, message.as_string())
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    
+
+    return db_quotation

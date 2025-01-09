@@ -5,7 +5,7 @@ from datetime import datetime
 from model.warehouse import Warehouse
 
 class Product(SQLModel, table=True):
-    __tablename__ = "products"
+    __tablename__ = "product"
 
     id: Optional[int] = Field(default=None, primary_key=True)
     name: str = Field(max_length=255, nullable=False)

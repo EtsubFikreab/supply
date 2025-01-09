@@ -8,7 +8,7 @@ from db import get_session
 from model.organization import Organization
 from model.product import Product
 from model.warehouse import Warehouse
-from model.person import Supplier
+from model.person import Supplier, Client
 
 SessionDep = Annotated[Session, Depends(get_session)]
 UserDep = Annotated[dict, Depends(get_current_user)]
@@ -267,3 +267,72 @@ async def search_supplier_by_name(session: SessionDep, current_user: UserDep, su
     if current_user.get("user_role") not in ["admin", "procurement"]:
         return HTTPException(status_code=400, detail="You do not have the required permissions to view suppliers.")
     return session.exec(select(Supplier).where(Supplier.company_name.ilike(f"%{supplier_name}%"))).all()
+
+@ar.post("/create_client")
+async def create_client(session: SessionDep, current_user: UserDep, new_client: Client = Form(...)):
+    new_client.id = None
+    session.add(new_client)
+    session.commit()
+    session.refresh(new_client)
+
+    return new_client
+    if current_user.get("user_role") != "admin":
+        return HTTPException(status_code=400, detail="You do not have the required permissions to create a warehouse.")
+    try:
+        new_client.id = None
+        session.add(new_client)
+        session.commit()
+        session.refresh(new_client)
+
+        return new_client
+
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@ar.get("/clients")
+async def get_clients(session: SessionDep, current_user: UserDep):
+    if current_user.get("user_role") not in ["admin", "sales"]:
+        return HTTPException(status_code=400, detail="You do not have the required permissions to view clients.")
+    return session.exec(select(Client)).all()
+
+@ar.get("/client_by_id")
+async def get_client_by_id(session: SessionDep, current_user: UserDep, client_id: int):
+    if current_user.get("user_role") not in ["admin", "sales"]:
+        return HTTPException(status_code=400, detail="You do not have the required permissions to view clients.")
+    return session.exec(select(Client).where(Client.id == client_id)).first()
+
+@ar.post("/update_client")
+async def update_client(session: SessionDep, current_user: UserDep, new_client: Client = Form(...)):
+    if current_user.get("user_role") != "admin":
+        return HTTPException(status_code=400, detail="You do not have the required permissions to update a client.")
+    db_client = session.exec(select(Client).where(
+        Client.id == new_client.id)).first()
+    if not db_client:
+        return HTTPException(status_code=400, detail="Client does not exist.")
+    try:
+        db_client.company_name = new_client.company_name
+        db_client.contact_person = new_client.contact_person
+        db_client.email = new_client.email
+        db_client.phone = new_client.phone
+
+        session.add(db_client)
+        session.commit()
+        session.refresh(db_client)
+        return db_client
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@ar.delete("/delete_client")
+async def delete_client(session: SessionDep, current_user: UserDep, client_id: int):
+    if current_user.get("user_role") != "admin":
+        return HTTPException(status_code=400, detail="You do not have the required permissions to delete a client.")
+    db_client = session.exec(select(Client).where(
+        Client.id == client_id)).first()
+    if not db_client:
+        return HTTPException(status_code=400, detail="Client does not exist.")
+    try:
+        session.delete(db_client)
+        session.commit()
+        return {"message": "Client deleted successfully."}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))

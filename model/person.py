@@ -31,4 +31,4 @@ class Client(Person, SQLModel, table=True):
     __tablename__ = "client"
 
     company_name: str = Field(max_length=255, nullable=False)
-    contact_person_name: str = Field(max_length=255, default=None)
+    contact_person: str = Field(max_length=255, default="CEO")

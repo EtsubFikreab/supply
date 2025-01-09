@@ -7,12 +7,12 @@ from sqlmodel import SQLModel
 
 
 class Order(SQLModel, table=True):
-    __tablename__ = "orders"
+    __tablename__ = "order"
 
     id: Optional[int] = Field(default=None, primary_key=True)
-    organization_id: int = Field(foreign_key="organization.id", nullable=False)
-    client_id: uuid.UUID = Field(foreign_key="client.client_id", nullable=False)
-    user_id: uuid.UUID = Field(foreign_key="user_roles.user_id", nullable=False)  # User who created the order
+    organization_id: int = Field(foreign_key="organization.id", default=None)
+    client_id: int = Field(foreign_key="client.id", nullable=False)
+    user_id: uuid.UUID = Field(foreign_key="user_roles.user_id", default=None)  # User who created the order
     order_date: datetime = Field(default_factory=datetime.utcnow) # e.g., Pending, Dispatched, Delivered
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)

@@ -22,7 +22,7 @@ class Driver(Person, SQLModel, table=True):
     __tablename__ = "driver"
 
     name: str = Field(max_length=255, nullable=False)
-    user_id: Optional[uuid.UUID] = Field(foreign_key="user_roles.user_id", default=None)  # Foreign key to auth.users
+    driver_id: Optional[uuid.UUID] = Field(foreign_key="user_roles.user_id", default=None)  # Foreign key to auth.users
     car_license_plate: str = Field(max_length=15, nullable=False)
     driver_license_id: str = Field(max_length=20, nullable=False)
 

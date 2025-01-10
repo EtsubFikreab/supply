@@ -22,13 +22,16 @@ async def get_orders(session: SessionDep, current_user: UserDep):
 async def create_order(session: SessionDep, current_user: UserDep, new_order: Order = Form(...)):
     if current_user.get("user_role") not in ["admin", "sales"]:
         return HTTPException(status_code=400, detail="You do not have the required permissions to create a sales order")
-    new_order.id = None
-    new_order.user_id = current_user.get("sub")
-    new_order.organization_id = current_user.get("organization_id")
-    session.add(new_order)
-    session.commit()
-    session.refresh(new_order)
-    return new_order
+    try:
+        new_order.id = None
+        new_order.user_id = current_user.get("sub")
+        new_order.organization_id = current_user.get("organization_id")
+        session.add(new_order)
+        session.commit()
+        session.refresh(new_order)
+        return new_order
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e)) 
 
 @sr.post("/update_order")
 async def update_order(session: SessionDep, current_user: UserDep, new_order: Order = Form(...)):
@@ -79,11 +82,14 @@ async def create_order_item(session: SessionDep, current_user: UserDep, new_orde
         return HTTPException(status_code=400, detail="You do not have the required permissions to create a sales order item")
     if not session.exec(select(Order).where(Order.id == new_order_item.order_id).where(Order.organization_id == current_user.get("organization_id"))).first():
         return HTTPException(status_code=400, detail="Order does not exist.")
-    new_order_item.id = None
-    session.add(new_order_item)
-    session.commit()
-    session.refresh(new_order_item)
-    return new_order_item
+    try:
+        new_order_item.id = None
+        session.add(new_order_item)
+        session.commit()
+        session.refresh(new_order_item)
+        return new_order_item
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 @sr.post("/update_order_item")
 async def update_order_item(session: SessionDep, current_user: UserDep, new_order_item: OrderItem = Form(...)):

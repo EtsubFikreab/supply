@@ -9,7 +9,7 @@ from sqlmodel import select, Session
 
 from auth import get_current_user
 from db import get_session
-from model.person import Supplier
+from model.user import Supplier
 from model.rfq import RFQ, Quotation
 
 SessionDep = Annotated[Session, Depends(get_session)]
@@ -18,7 +18,7 @@ UserDep = Annotated[dict, Depends(get_current_user)]
 procurement_router = pr = APIRouter()
 
 
-@pr.get("/rfq")
+@pr.get("/rfqs")
 async def get_request_for_rfqs(session: SessionDep, current_user: UserDep):
     if current_user.get("user_role") not in ["admin", "procurement", "supplier"]:
         return HTTPException(status_code=400, detail="You do not have the required permissions to view request for quotation")
@@ -29,13 +29,16 @@ async def get_request_for_rfqs(session: SessionDep, current_user: UserDep):
 async def create_request_for_rfq(session: SessionDep, current_user: UserDep, new_rfq: RFQ = Form(...)):
     if current_user.get("user_role") not in ["admin", "procurement"]:
         return HTTPException(status_code=400, detail="You do not have the required permissions to create a request for quotation")
-    new_rfq.id = None
-    new_rfq.created_by = current_user.get("sub")
-    new_rfq.organization_id = current_user.get("organization_id")
-    session.add(new_rfq)
-    session.commit()
-    session.refresh(new_rfq)
-    return new_rfq
+    try:
+        new_rfq.id = None
+        new_rfq.created_by = current_user.get("sub")
+        new_rfq.organization_id = current_user.get("organization_id")
+        session.add(new_rfq)
+        session.commit()
+        session.refresh(new_rfq)
+        return new_rfq
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 
 @pr.post("/update_rfq")
@@ -69,13 +72,15 @@ async def delete_request_for_rfq(session: SessionDep, current_user: UserDep, rfq
         RFQ.organization_id == current_user.get("organization_id"))).first()
     if not db_rfq:
         return HTTPException(status_code=400, detail="Request for quotation does not exist.")
+    try:
+        session.delete(db_rfq)
+        session.commit()
+        return {"message": "Request for quotation deleted successfully."}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
-    session.delete(db_rfq)
-    session.commit()
-    return {"message": "Request for quotation deleted successfully."}
 
-
-@pr.get("/quotation")
+@pr.get("/quotations")
 async def get_quotations(session: SessionDep, current_user: UserDep, rfq_id: int):
     if current_user.get("user_role") not in ["admin", "procurement"]:
         return HTTPException(status_code=400, detail="You do not have the required permissions to view quotations")

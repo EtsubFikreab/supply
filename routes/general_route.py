@@ -15,7 +15,7 @@ UserDep = Annotated[dict, Depends(get_current_user)]
 general_router = gr = APIRouter()
 
 
-@gr.get("/organization")
+@gr.get("/organizations")
 async def get_user_organization(session: SessionDep, current_user: UserDep):
     try:
         user_organization_id = current_user.get("organization_id")
@@ -27,7 +27,7 @@ async def get_user_organization(session: SessionDep, current_user: UserDep):
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
-@gr.get("/warehouse")
+@gr.get("/warehouses")
 async def get_user_warehouse(session: SessionDep, current_user: UserDep):
     try:
         user_organization_id = current_user.get("organization_id")

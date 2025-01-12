@@ -20,14 +20,14 @@ procurement_router = pr = APIRouter()
 
 @pr.get("/rfqs")
 async def get_request_for_rfqs(session: SessionDep, current_user: UserDep):
-    if current_user.get("user_role") not in ["admin", "procurement", "supplier"]:
+    if current_user.get("user_role") not in ["admin", "procurer", "supplier"]:
         return HTTPException(status_code=400, detail="You do not have the required permissions to view request for quotation")
     return session.exec(select(RFQ).where(RFQ.organization_id == current_user.get("user_metadata").get("organization_id"))).all()
 
 
 @pr.post("/create_rfq")
 async def create_request_for_rfq(session: SessionDep, current_user: UserDep, new_rfq: RFQ = Form(...)):
-    if current_user.get("user_role") not in ["admin", "procurement"]:
+    if current_user.get("user_role") not in ["admin", "procurer"]:
         return HTTPException(status_code=400, detail="You do not have the required permissions to create a request for quotation")
     try:
         new_rfq.id = None
@@ -43,7 +43,7 @@ async def create_request_for_rfq(session: SessionDep, current_user: UserDep, new
 
 @pr.post("/update_rfq")
 async def update_request_for_rfq(session: SessionDep, current_user: UserDep, new_rfq: RFQ = Form(...)):
-    if current_user.get("user_role") not in ["admin", "procurement"]:
+    if current_user.get("user_role") not in ["admin", "procurer"]:
         return HTTPException(status_code=400, detail="You do not have the required permissions to update a request for quotation")
     db_rfq = session.exec(select(RFQ).where(RFQ.id == new_rfq.id).where(
         RFQ.organization_id == current_user.get("user_metadata").get("organization_id"))).first()
@@ -66,7 +66,7 @@ async def update_request_for_rfq(session: SessionDep, current_user: UserDep, new
 
 @pr.delete("/delete_rfq")
 async def delete_request_for_rfq(session: SessionDep, current_user: UserDep, rfq_id: int):
-    if current_user.get("user_role") not in ["admin", "procurement"]:
+    if current_user.get("user_role") not in ["admin", "procurer"]:
         return HTTPException(status_code=400, detail="You do not have the required permissions to delete a request for quotation")
     db_rfq = session.exec(select(RFQ).where(RFQ.id == rfq_id).where(
         RFQ.organization_id == current_user.get("user_metadata").get("organization_id"))).first()
@@ -82,7 +82,7 @@ async def delete_request_for_rfq(session: SessionDep, current_user: UserDep, rfq
 
 @pr.get("/quotations")
 async def get_quotations(session: SessionDep, current_user: UserDep, rfq_id: int):
-    if current_user.get("user_role") not in ["admin", "procurement"]:
+    if current_user.get("user_role") not in ["admin", "procurer"]:
         return HTTPException(status_code=400, detail="You do not have the required permissions to view quotations")
     rfq = session.exec(select(RFQ).where(RFQ.id == rfq_id).where(
         RFQ.organization_id == current_user.get("user_metadata").get("organization_id"))).first()
@@ -93,7 +93,7 @@ async def get_quotations(session: SessionDep, current_user: UserDep, rfq_id: int
 
 @pr.post("/create_quotation")
 async def create_quotation(session: SessionDep, current_user: UserDep, new_quotation: Quotation = Form(...)):
-    if current_user.get("user_role") not in ["admin", "procurement", "supplier"]:
+    if current_user.get("user_role") not in ["admin", "procurer", "supplier"]:
         return HTTPException(status_code=400, detail="You do not have the required permissions to create a quotation")
     try:
         if new_quotation.selected=="true":
@@ -113,7 +113,7 @@ async def create_quotation(session: SessionDep, current_user: UserDep, new_quota
 
 @pr.post("/update_quotation")
 async def update_quotation(session: SessionDep, current_user: UserDep, new_quotation: Quotation = Form(...)):
-    if current_user.get("user_role") not in ["admin", "procurement", "supplier"]:
+    if current_user.get("user_role") not in ["admin", "procurer", "supplier"]:
         return HTTPException(status_code=400, detail="You do not have the required permissions to update a quotation")
     db_quotation = session.exec(select(Quotation).where(Quotation.id == new_quotation.id)).first()
     if not db_quotation:
@@ -136,7 +136,7 @@ async def update_quotation(session: SessionDep, current_user: UserDep, new_quota
 
 @pr.delete("/delete_quotation")
 async def delete_quotation(session: SessionDep, current_user: UserDep, quotation_id: int):
-    if current_user.get("user_role") not in ["admin", "procurement"]:
+    if current_user.get("user_role") not in ["admin", "procurer"]:
         return HTTPException(status_code=400, detail="You do not have the required permissions to delete a quotation")
     db_quotation = session.exec(select(Quotation).where(Quotation.id == quotation_id)).first()
     if not db_quotation:
@@ -147,7 +147,7 @@ async def delete_quotation(session: SessionDep, current_user: UserDep, quotation
 
 @pr.post("/select_quotation")
 async def select_quotation(session: SessionDep, current_user: UserDep, quotation_id: int):
-    if current_user.get("user_role") not in ["admin", "procurement"]:
+    if current_user.get("user_role") not in ["admin", "procurer"]:
         return HTTPException(status_code=400, detail="You do not have the required permissions to select a quotation")
     try:
         db_quotation = session.exec(select(Quotation).where(Quotation.id == quotation_id)).first()

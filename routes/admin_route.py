@@ -35,7 +35,7 @@ async def update_organization_by_admin(session: SessionDep, current_user: UserDe
         return HTTPException(status_code=400, detail="You do not have the required permissions to create an organization.")
     try:
         db_organization = session.exec(select(Organization).where(
-            Organization.id == current_user.get("organization_id"))).first()
+            Organization.id ==current_user.get("user_metadata").get("organization_id"))).first()
         if not db_organization:
             return HTTPException(status_code=400, detail="Organization does not exist.")
 
@@ -78,11 +78,11 @@ async def create_product(session: SessionDep, current_user: UserDep, new_product
         if new_product.warehouse_id == "":
             new_product.warehouse_id = None
 
-        if current_user.get("organization_id") == "":
+        if current_user.get("user_metadata").get("organization_id") == "":
             raise HTTPException(
                 status_code=400, detail="User does not have an organization_id")
 
-        new_product.organization_id = current_user.get("organization_id")
+        new_product.organization_id = current_user.get("user_metadata").get("organization_id")
         new_product.user_id = current_user.get("sub")
         session.add(new_product)
         session.commit()
@@ -144,11 +144,11 @@ async def create_warehouse(session: SessionDep, current_user: UserDep, new_wareh
         return HTTPException(status_code=400, detail="You do not have the required permissions to create a warehouse.")
     try:
         new_warehouse.id = None
-        if current_user.get("organization_id") == "":
+        if current_user.get("user_metadata").get("organization_id") == "":
             raise HTTPException(
                 status_code=400, detail="User does not have an organization_id")
 
-        new_warehouse.organization_id = current_user.get("organization_id")
+        new_warehouse.organization_id = current_user.get("user_metadata").get("organization_id")
         new_warehouse.user_id = current_user.get("sub")
         session.add(new_warehouse)
         session.commit()

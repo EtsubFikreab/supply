@@ -22,7 +22,7 @@ procurement_router = pr = APIRouter()
 async def get_request_for_rfqs(session: SessionDep, current_user: UserDep):
     if current_user.get("user_role") not in ["admin", "procurement", "supplier"]:
         return HTTPException(status_code=400, detail="You do not have the required permissions to view request for quotation")
-    return session.exec(select(RFQ).where(RFQ.organization_id == current_user.get("organization_id"))).all()
+    return session.exec(select(RFQ).where(RFQ.organization_id == current_user.get("user_metadata").get("organization_id"))).all()
 
 
 @pr.post("/create_rfq")
@@ -32,7 +32,7 @@ async def create_request_for_rfq(session: SessionDep, current_user: UserDep, new
     try:
         new_rfq.id = None
         new_rfq.created_by = current_user.get("sub")
-        new_rfq.organization_id = current_user.get("organization_id")
+        new_rfq.organization_id = current_user.get("user_metadata").get("organization_id")
         session.add(new_rfq)
         session.commit()
         session.refresh(new_rfq)
@@ -46,7 +46,7 @@ async def update_request_for_rfq(session: SessionDep, current_user: UserDep, new
     if current_user.get("user_role") not in ["admin", "procurement"]:
         return HTTPException(status_code=400, detail="You do not have the required permissions to update a request for quotation")
     db_rfq = session.exec(select(RFQ).where(RFQ.id == new_rfq.id).where(
-        RFQ.organization_id == current_user.get("organization_id"))).first()
+        RFQ.organization_id == current_user.get("user_metadata").get("organization_id"))).first()
     if not db_rfq:
         return HTTPException(status_code=400, detail="Request for quotation does not exist.")
     try:
@@ -69,7 +69,7 @@ async def delete_request_for_rfq(session: SessionDep, current_user: UserDep, rfq
     if current_user.get("user_role") not in ["admin", "procurement"]:
         return HTTPException(status_code=400, detail="You do not have the required permissions to delete a request for quotation")
     db_rfq = session.exec(select(RFQ).where(RFQ.id == rfq_id).where(
-        RFQ.organization_id == current_user.get("organization_id"))).first()
+        RFQ.organization_id == current_user.get("user_metadata").get("organization_id"))).first()
     if not db_rfq:
         return HTTPException(status_code=400, detail="Request for quotation does not exist.")
     try:
@@ -85,7 +85,7 @@ async def get_quotations(session: SessionDep, current_user: UserDep, rfq_id: int
     if current_user.get("user_role") not in ["admin", "procurement"]:
         return HTTPException(status_code=400, detail="You do not have the required permissions to view quotations")
     rfq = session.exec(select(RFQ).where(RFQ.id == rfq_id).where(
-        RFQ.organization_id == current_user.get("organization_id"))).first()
+        RFQ.organization_id == current_user.get("user_metadata").get("organization_id"))).first()
     if not rfq:
         return HTTPException(status_code=400, detail="RFQ does not exist.")
     return session.exec(select(Quotation).where(Quotation.rfq_id == rfq_id)).all()

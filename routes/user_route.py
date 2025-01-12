@@ -18,7 +18,7 @@ async def create_supplier(session: SessionDep, current_user: UserDep, new_suppli
         return HTTPException(status_code=400, detail="You do not have the required permissions to create a warehouse.")
     try:
         new_supplier.id = None
-        if current_user.get("organization_id") == "":
+        if current_user.get("user_metadata").get("organization_id") == "":
             raise HTTPException(
                 status_code=400, detail="User does not have an organization_id")
         if new_supplier.user_id == "":

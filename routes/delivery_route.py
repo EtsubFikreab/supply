@@ -16,14 +16,14 @@ delivery_router = dr = APIRouter()
 async def get_deliveries(session: SessionDep, current_user: UserDep):
     if current_user.get("user_role") not in ["admin", "delivery", "sales"]:
         return HTTPException(status_code=400, detail="You do not have the required permissions to view deliveries")
-    return session.exec(select(Delivery).where(Delivery.organization_id == current_user.get("organization_id"))).all()
+    return session.exec(select(Delivery).where(Delivery.organization_id == current_user.get("user_metadata").get("organization_id"))).all()
 
 @dr.get("/delivery")
 async def get_delivery_by_id(session: SessionDep, current_user: UserDep, delivery_id: int):
     if current_user.get("user_role") not in ["admin", "delivery", "sales"]:
         return HTTPException(status_code=400, detail="You do not have the required permissions to view a delivery")
     return session.exec(select(Delivery).where(Delivery.id == delivery_id).where(
-        Delivery.organization_id == current_user.get("organization_id"))).first()
+        Delivery.organization_id == current_user.get("user_metadata").get("organization_id"))).first()
 
 @dr.post("/create_delivery")
 async def create_delivery(session: SessionDep, current_user: UserDep, new_delivery: Delivery = Form(...)):
@@ -31,7 +31,7 @@ async def create_delivery(session: SessionDep, current_user: UserDep, new_delive
         return HTTPException(status_code=400, detail="You do not have the required permissions to create a delivery")
     new_delivery.id = None
     new_delivery.created_by = current_user.get("sub")
-    new_delivery.organization_id = current_user.get("organization_id")
+    new_delivery.organization_id = current_user.get("user_metadata").get("organization_id")
     session.add(new_delivery)
     session.commit()
     session.refresh(new_delivery)
@@ -42,7 +42,7 @@ async def update_delivery(session: SessionDep, current_user: UserDep, new_delive
     if current_user.get("user_role") not in ["admin", "delivery"]:
         return HTTPException(status_code=400, detail="You do not have the required permissions to update a delivery")
     db_delivery = session.exec(select(Delivery).where(Delivery.id == new_delivery.id).where(
-        Delivery.organization_id == current_user.get("organization_id"))).first()
+        Delivery.organization_id == current_user.get("user_metadata").get("organization_id"))).first()
     if not db_delivery:
         return HTTPException(status_code=400, detail="Delivery does not exist.")
     try:
@@ -64,7 +64,7 @@ async def delete_delivery(session: SessionDep, current_user: UserDep, delivery_i
     if current_user.get("user_role") not in ["admin", "delivery"]:
         return HTTPException(status_code=400, detail="You do not have the required permissions to delete a delivery")
     db_delivery = session.exec(select(Delivery).where(Delivery.id == delivery_id).where(
-        Delivery.organization_id == current_user.get("organization_id"))).first()
+        Delivery.organization_id == current_user.get("user_metadata").get("organization_id"))).first()
     if not db_delivery:
         return HTTPException(status_code=400, detail="Delivery does not exist.")
     try:
@@ -79,7 +79,7 @@ async def get_delivery_status_updates(session: SessionDep, current_user: UserDep
     if current_user.get("user_role") not in ["admin", "delivery"]:
         return HTTPException(status_code=400, detail="You do not have the required permissions to view delivery status updates")
     if not session.exec(select(Delivery).where(Delivery.id == delivery_id).where(
-        Delivery.organization_id == current_user.get("organization_id"))).first():
+        Delivery.organization_id == current_user.get("user_metadata").get("organization_id"))).first():
         return HTTPException(status_code=400, detail="Delivery does not exist.")
     return session.exec(select(DeliveryStatusUpdate).where(DeliveryStatusUpdate.delivery_id == delivery_id)).all()
 

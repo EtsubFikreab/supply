@@ -16,7 +16,7 @@ sales_router = sr = APIRouter()
 async def get_orders(session: SessionDep, current_user: UserDep):
     if current_user.get("user_role") not in ["admin", "sales"]:
         return HTTPException(status_code=400, detail="You do not have the required permissions to view sales")
-    return session.exec(select(Order).where(Order.organization_id == current_user.get("organization_id"))).all()
+    return session.exec(select(Order).where(Order.organization_id == current_user.get("user_metadata").get("organization_id"))).all()
 
 @sr.post("/create_order")
 async def create_order(session: SessionDep, current_user: UserDep, new_order: Order = Form(...)):
@@ -25,7 +25,7 @@ async def create_order(session: SessionDep, current_user: UserDep, new_order: Or
     try:
         new_order.id = None
         new_order.user_id = current_user.get("sub")
-        new_order.organization_id = current_user.get("organization_id")
+        new_order.organization_id = current_user.get("user_metadata").get("organization_id")
         session.add(new_order)
         session.commit()
         session.refresh(new_order)
@@ -38,7 +38,7 @@ async def update_order(session: SessionDep, current_user: UserDep, new_order: Or
     if current_user.get("user_role") not in ["admin", "sales"]:
         return HTTPException(status_code=400, detail="You do not have the required permissions to update a sales order")
     db_order = session.exec(select(Order).where(Order.id == new_order.id).where(
-        Order.organization_id == current_user.get("organization_id"))).first()
+        Order.organization_id == current_user.get("user_metadata").get("organization_id"))).first()
     if not db_order:
         return HTTPException(status_code=400, detail="Order does not exist.")
     try:
@@ -58,7 +58,7 @@ async def delete_order(session: SessionDep, current_user: UserDep, order_id: int
     if current_user.get("user_role") not in ["admin", "sales"]:
         return HTTPException(status_code=400, detail="You do not have the required permissions to delete a sales order")
     db_order = session.exec(select(Order).where(Order.id == order_id).where(
-        Order.organization_id == current_user.get("organization_id"))).first()
+        Order.organization_id == current_user.get("user_metadata").get("organization_id"))).first()
     if not db_order:
         return HTTPException(status_code=400, detail="Order does not exist.")
     try:
@@ -72,7 +72,7 @@ async def delete_order(session: SessionDep, current_user: UserDep, order_id: int
 async def get_order_items(session: SessionDep, current_user: UserDep, order_id: int):
     if current_user.get("user_role") not in ["admin", "sales"]:
         return HTTPException(status_code=400, detail="You do not have the required permissions to view sales order items")
-    if not session.exec(select(Order).where(Order.id == order_id).where(Order.organization_id == current_user.get("organization_id"))).first():
+    if not session.exec(select(Order).where(Order.id == order_id).where(Order.organization_id == current_user.get("user_metadata").get("organization_id"))).first():
         return HTTPException(status_code=400, detail="Order does not exist.")
     return session.exec(select(OrderItem).where(OrderItem.order_id==order_id)).all()
 
@@ -80,7 +80,7 @@ async def get_order_items(session: SessionDep, current_user: UserDep, order_id: 
 async def create_order_item(session: SessionDep, current_user: UserDep, new_order_item: OrderItem = Form(...)):
     if current_user.get("user_role") not in ["admin", "sales"]:
         return HTTPException(status_code=400, detail="You do not have the required permissions to create a sales order item")
-    if not session.exec(select(Order).where(Order.id == new_order_item.order_id).where(Order.organization_id == current_user.get("organization_id"))).first():
+    if not session.exec(select(Order).where(Order.id == new_order_item.order_id).where(Order.organization_id == current_user.get("user_metadata").get("organization_id"))).first():
         return HTTPException(status_code=400, detail="Order does not exist.")
     try:
         new_order_item.id = None
@@ -95,7 +95,7 @@ async def create_order_item(session: SessionDep, current_user: UserDep, new_orde
 async def update_order_item(session: SessionDep, current_user: UserDep, new_order_item: OrderItem = Form(...)):
     if current_user.get("user_role") not in ["admin", "sales"]:
         return HTTPException(status_code=400, detail="You do not have the required permissions to update a sales order item")
-    if not session.exec(select(Order).where(Order.id == new_order_item.order_id).where(Order.organization_id == current_user.get("organization_id"))).first():
+    if not session.exec(select(Order).where(Order.id == new_order_item.order_id).where(Order.organization_id == current_user.get("user_metadata").get("organization_id"))).first():
         return HTTPException(status_code=400, detail="Order does not exist.")
     db_order_item = session.exec(select(OrderItem).where(OrderItem.id == new_order_item.id).where(
         OrderItem.order_id == new_order_item.order_id)).first()

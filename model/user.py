@@ -32,3 +32,4 @@ class Client(Person, SQLModel, table=True):
 
     company_name: str = Field(max_length=255, nullable=False)
     contact_person: str = Field(max_length=255, default="CEO")
+    client_type: str = Field(max_length=255, default="Shop")

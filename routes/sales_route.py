@@ -5,7 +5,8 @@ from sqlmodel import select, Session
 
 from auth import get_current_user
 from db import get_session
-from model.orders import Order, OrderItem
+from model.orders import Order, OrderItem, Invoice
+from model.user import Client
 
 SessionDep = Annotated[Session, Depends(get_session)]
 UserDep = Annotated[dict, Depends(get_current_user)]
@@ -128,3 +129,21 @@ async def delete_order_item(session: SessionDep, current_user: UserDep, order_it
         return {"message": "Order item deleted successfully"}
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
+
+@sr.get("/invoice")
+async def get_order_total(session: SessionDep, current_user: UserDep, order_id: int):
+    if current_user.get("user_role") not in ["admin", "sales", "warehouse"]:
+        return HTTPException(status_code=400, detail="You do not have the required permissions to view sales order total")
+    invoice: Invoice = Invoice()
+    invoice.order_details = session.exec(select(Order).where(Order.id == order_id).where(Order.organization_id == current_user.get("user_metadata").get("organization_id"))).first()
+    if not invoice.order_details:
+        return HTTPException(status_code=400, detail="Order does not exist.")
+    invoice.order_items = session.exec(select(OrderItem).where(OrderItem.order_id == order_id)).all()
+    invoice.total = 0
+    for item in invoice.order_items:
+        invoice.total += item.price * item.quantity
+    client = session.exec(select(Client).where(Client.id == invoice.order_details.client_id)).first()
+    if client.client_type == "Distributor":
+        invoice.total *= 0.9 
+        #10% discount for distributors
+    return invoice

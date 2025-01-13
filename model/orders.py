@@ -25,3 +25,8 @@ class OrderItem(SQLModel, table=True):
     product_id: int = Field(foreign_key="product.id", nullable=False)
     quantity: float = Field(nullable=False)
     price: float = Field(nullable=False)
+
+class Invoice:
+    order_details: Order
+    order_items: OrderItem
+    total: float

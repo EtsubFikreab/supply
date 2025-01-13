@@ -15,10 +15,15 @@ delivery_router = dr = APIRouter()
 
 @dr.get("/deliveries")
 async def get_deliveries(session: SessionDep, current_user: UserDep):
-    if current_user.get("user_role") not in ["admin", "driver", "warehouse", "sales"]:
+    if current_user.get("user_role") not in ["admin", "warehouse", "sales"]:
         return HTTPException(status_code=400, detail="You do not have the required permissions to view deliveries")
     return session.exec(select(Delivery).where(Delivery.organization_id == current_user.get("user_metadata").get("organization_id"))).all()
 
+@dr.get("/deliveries_driver")
+async def get_deliveries_of_the_driver(session: SessionDep, current_user: UserDep, driver_id:int):
+    if current_user.get("user_role") not in ["admin", "warehouse", "sales", "driver"]:
+        return HTTPException(status_code=400, detail="You do not have the required permissions to view deliveries")
+    return session.exec(select(Delivery).where(Delivery.organization_id == current_user.get("user_metadata").get("organization_id")).where(Delivery.driver_id==driver_id)).all()
 
 @dr.get("/delivery")
 async def get_delivery_by_id(session: SessionDep, current_user: UserDep, delivery_id: int):

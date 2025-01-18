@@ -6,11 +6,23 @@ from sqlmodel import select, Session
 from auth import get_current_user
 from db import get_session
 from model.delivery import Delivery, DeliveryStatusUpdate
+from model.orders import Order
 
 SessionDep = Annotated[Session, Depends(get_session)]
 UserDep = Annotated[dict, Depends(get_current_user)]
 
 delivery_router = dr = APIRouter()
+
+
+@dr.get("/orders_unassigned")
+async def get_orders_confirmed_but_not_assigned(session: SessionDep, current_user: UserDep):
+    if current_user.get("user_role") not in ["admin", "warehouse", "sales"]:
+        return HTTPException(status_code=400, detail="You do not have the required permissions to view deliveries")
+    try:
+        return session.exec(select(Order).where(Order.confirmed == True).where(
+            Order.organization_id == current_user.get("user_metadata").get("organization_id"))).all()
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 
 @dr.get("/deliveries")
@@ -19,11 +31,13 @@ async def get_deliveries(session: SessionDep, current_user: UserDep):
         return HTTPException(status_code=400, detail="You do not have the required permissions to view deliveries")
     return session.exec(select(Delivery).where(Delivery.organization_id == current_user.get("user_metadata").get("organization_id"))).all()
 
+
 @dr.get("/deliveries_driver")
-async def get_deliveries_of_the_driver(session: SessionDep, current_user: UserDep, driver_id:int):
+async def get_deliveries_of_the_driver(session: SessionDep, current_user: UserDep, driver_id: int):
     if current_user.get("user_role") not in ["admin", "warehouse", "sales", "driver"]:
         return HTTPException(status_code=400, detail="You do not have the required permissions to view deliveries")
-    return session.exec(select(Delivery).where(Delivery.organization_id == current_user.get("user_metadata").get("organization_id")).where(Delivery.driver_id==driver_id)).all()
+    return session.exec(select(Delivery).where(Delivery.organization_id == current_user.get("user_metadata").get("organization_id")).where(Delivery.driver_id == driver_id)).all()
+
 
 @dr.get("/delivery")
 async def get_delivery_by_id(session: SessionDep, current_user: UserDep, delivery_id: int):

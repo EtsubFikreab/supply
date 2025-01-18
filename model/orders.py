@@ -16,6 +16,7 @@ class Order(SQLModel, table=True):
     order_date: datetime = Field(default_factory=datetime.utcnow) # e.g., Pending, Dispatched, Delivered
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
+    confirmed: bool = Field(default=False)
 
 class OrderItem(SQLModel, table=True):
     __tablename__ = "order_item"

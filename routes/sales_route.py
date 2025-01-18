@@ -27,6 +27,8 @@ async def create_order(session: SessionDep, current_user: UserDep, new_order: Or
         new_order.id = None
         new_order.user_id = current_user.get("sub")
         new_order.organization_id = current_user.get("user_metadata").get("organization_id")
+        if new_order.confirmed=="true":
+            new_order.confirmed=True
         session.add(new_order)
         session.commit()
         session.refresh(new_order)
@@ -127,6 +129,24 @@ async def delete_order_item(session: SessionDep, current_user: UserDep, order_it
         session.delete(db_order_item)
         session.commit()
         return {"message": "Order item deleted successfully"}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@sr.post("/confirm_order")
+async def confirm_order_ready_for_delivery(session: SessionDep, current_user: UserDep, order_id: int):
+    if current_user.get("user_role") not in ["admin", "sales"]:
+        return HTTPException(status_code=400, detail="You do not have the required permissions to update a sales order")
+    db_order = session.exec(select(Order).where(Order.id == order_id).where(
+        Order.organization_id == current_user.get("user_metadata").get("organization_id"))).first()
+    if not db_order:
+        return HTTPException(status_code=400, detail="Order does not exist.")
+    try:
+        db_order.confirmed = True
+
+        session.add(db_order)
+        session.commit()
+        session.refresh(db_order)
+        return db_order
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 

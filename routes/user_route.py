@@ -88,12 +88,6 @@ async def search_supplier_by_name(session: SessionDep, current_user: UserDep, su
 
 @ur.post("/create_client")
 async def create_client(session: SessionDep, current_user: UserDep, new_client: Client = Form(...)):
-    new_client.id = None
-    session.add(new_client)
-    session.commit()
-    session.refresh(new_client)
-
-    return new_client
     if current_user.get("user_role") != "admin":
         return HTTPException(status_code=400, detail="You do not have the required permissions to create a warehouse.")
     try:

@@ -5,9 +5,10 @@ from sqlmodel import select, Session
 
 from auth import get_current_user
 from db import get_session
-from model.orders import Order, OrderItem, Invoice
+from model.orders import Order, OrderItem
 from model.product import Product
 from model.user import Client
+from model.viewmodel import Invoice, ClientOrder
 
 SessionDep = Annotated[Session, Depends(get_session)]
 UserDep = Annotated[dict, Depends(get_current_user)]
@@ -91,8 +92,6 @@ async def get_order_items(session: SessionDep, current_user: UserDep, order_id: 
 
 @sr.post("/create_order_item")
 async def create_order_item(session: SessionDep, current_user: UserDep, new_order_item: OrderItem = Form(...)):
-    return session.exec(select(Product).where(Product.id == new_order_item.product_id)).first().price
-
     if current_user.get("user_role") not in ["admin", "sales"]:
         return HTTPException(status_code=400, detail="You do not have the required permissions to create a sales order item")
     if not session.exec(select(Order).where(Order.id == new_order_item.order_id).where(Order.organization_id == current_user.get("user_metadata").get("organization_id"))).first():
@@ -100,7 +99,7 @@ async def create_order_item(session: SessionDep, current_user: UserDep, new_orde
     try:
         new_order_item.id = None
         new_order_item.price = session.exec(select(Product).where(
-            Product.id == new_order_item.product_id)).first().price
+            Product.id == new_order_item.product_id)).first().sales_price
         session.add(new_order_item)
         session.commit()
         session.refresh(new_order_item)
@@ -168,6 +167,54 @@ async def confirm_order_ready_for_delivery(session: SessionDep, current_user: Us
         return db_order
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
+
+
+@sr.post("/create_SingleOrder")
+async def returns_the_order_id(session: SessionDep, current_user: UserDep, new_clientOrder: ClientOrder = Form(...)):
+    if current_user.get("user_role") not in ["admin", "sales"]:
+        return HTTPException(status_code=400, detail="You do not have the required permissions to create a sales order")
+    try:
+        client = Client()
+        client.id = None
+        client.company_name = new_clientOrder.company_name
+        client.contact_person = new_clientOrder.contact_person
+        client.email = new_clientOrder.email
+        client.phone = new_clientOrder.phone
+        client.client_type = new_clientOrder.client_type
+
+        session.add(client)
+        session.commit()
+        session.refresh(client)
+
+        order = Order()
+        order.id = None
+        order.user_id = current_user.get("sub")
+        order.organization_id = current_user.get(
+            "user_metadata").get("organization_id")
+        order.client_id = client.id
+        order.order_date = new_clientOrder.order_date
+        order.confirmed = True
+
+        session.add(order)
+        session.commit()
+        session.refresh(order)
+
+        return order.id
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@sr.post("/create_multiple_order_items")
+async def add_multiple_order_items_for_an_order(session: SessionDep, current_user: UserDep, order_items: list[OrderItem] = Annotated[list[OrderItem], Form(...)]):
+    if current_user.get("user_role") not in ["admin", "sales", "warehouse"]:
+        return HTTPException(status_code=400, detail="You do not have the required permissions to view sales order total")
+    for i in range(len(order_items)):
+        order_items[i].id = None
+        order_items[i].price = session.exec(select(Product).where(
+            Product.id == order_items[i].product_id)).first().sales_price
+        session.add(order_items[i])
+        session.commit()
+    return "Items Added Successfully"
 
 
 @sr.get("/invoice")

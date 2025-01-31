@@ -169,8 +169,8 @@ async def confirm_order_ready_for_delivery(session: SessionDep, current_user: Us
         raise HTTPException(status_code=400, detail=str(e))
 
 
-@sr.post("/create_SingleOrder")
-async def returns_the_order_id(session: SessionDep, current_user: UserDep, new_clientOrder: ClientOrder = Form(...)):
+@sr.post("/create_client_order")
+async def gets_client_information_and_returns_the_order_id(session: SessionDep, current_user: UserDep, new_clientOrder: ClientOrder = Form(...)):
     if current_user.get("user_role") not in ["admin", "sales"]:
         return HTTPException(status_code=400, detail="You do not have the required permissions to create a sales order")
     try:

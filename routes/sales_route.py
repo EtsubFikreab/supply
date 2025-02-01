@@ -32,10 +32,6 @@ async def create_order(session: SessionDep, current_user: UserDep, new_order: Or
         new_order.user_id = current_user.get("sub")
         new_order.organization_id = current_user.get(
             "user_metadata").get("organization_id")
-        if new_order.confirmed == "true":
-            new_order.confirmed = True
-        else:
-            new_order.confirmed = False
         session.add(new_order)
         session.commit()
         session.refresh(new_order)
@@ -56,7 +52,7 @@ async def update_order(session: SessionDep, current_user: UserDep, new_order: Or
         db_order.client_id = new_order.client_id
         db_order.order_date = new_order.order_date
         db_order.updated_at = new_order.updated_at
-
+        db_order.status = new_order.status
         session.add(db_order)
         session.commit()
         session.refresh(db_order)
@@ -150,25 +146,6 @@ async def delete_order_item(session: SessionDep, current_user: UserDep, order_it
         raise HTTPException(status_code=400, detail=str(e))
 
 
-@sr.post("/confirm_order")
-async def confirm_order_ready_for_delivery(session: SessionDep, current_user: UserDep, order_id: int):
-    if current_user.get("user_role") not in ["admin", "sales"]:
-        return HTTPException(status_code=400, detail="You do not have the required permissions to update a sales order")
-    db_order = session.exec(select(Order).where(Order.id == order_id).where(
-        Order.organization_id == current_user.get("user_metadata").get("organization_id"))).first()
-    if not db_order:
-        return HTTPException(status_code=400, detail="Order does not exist.")
-    try:
-        db_order.confirmed = True
-
-        session.add(db_order)
-        session.commit()
-        session.refresh(db_order)
-        return db_order
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
-
-
 @sr.post("/create_client_order")
 async def gets_client_information_and_returns_the_order_id(session: SessionDep, current_user: UserDep, new_clientOrder: ClientOrder = Form(...)):
     if current_user.get("user_role") not in ["admin", "sales"]:
@@ -193,7 +170,6 @@ async def gets_client_information_and_returns_the_order_id(session: SessionDep, 
             "user_metadata").get("organization_id")
         order.client_id = client.id
         order.order_date = new_clientOrder.order_date
-        order.confirmed = True
 
         session.add(order)
         session.commit()
@@ -231,9 +207,9 @@ async def get_order_total(session: SessionDep, current_user: UserDep, order_id: 
     invoice.total = 0
     for item in invoice.order_items:
         invoice.total += item.price * item.quantity
-    client = session.exec(select(Client).where(
+    invoice.client_details = session.exec(select(Client).where(
         Client.id == invoice.order_details.client_id)).first()
-    if client.client_type == "Distributor":
+    if invoice.client_details.client_type == "Distributor":
         invoice.total *= 0.9
         # 10% discount for distributors
     return invoice

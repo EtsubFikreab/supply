@@ -3,12 +3,14 @@ from datetime import datetime
 from sqlmodel import Field, SQLModel
 
 from model.orders import Order, OrderItem
+from model.user import Client
+
 
 class Invoice:
     order_details: Order
     order_items: OrderItem
+    client_details: Client
     total: float
-
 class ClientOrder(SQLModel, table=False):
     #client detail
     email: str = Field(max_length=255, default=None)

@@ -193,6 +193,38 @@ async def add_multiple_order_items_for_an_order(session: SessionDep, current_use
     return "Items Added Successfully"
 
 
+@sr.post("/update_multiple_order_items")
+async def add_multiple_order_items_for_an_order(session: SessionDep, current_user: UserDep, order_items: list[OrderItem] = Annotated[list[OrderItem], Form(...)]):
+    if current_user.get("user_role") not in ["admin", "sales", "warehouse"]:
+        return HTTPException(status_code=400, detail="You do not have the required permissions to view sales order total")
+    old_list: [order_items] = session.exec(select(OrderItem).where(
+        OrderItem.order_id == order_items[0].order_id)).all()
+    # check if item is missing to delete it
+    for item in old_list:
+        if item not in order_items:
+            session.delete(item)
+            session.commit()
+    
+    # update item if it exists or add new item
+    for item in order_items:
+        update_item = session.exec(select(OrderItem).where(
+            OrderItem.id == item.id)).first()
+        if update_item:
+            update_item.product_id = item.product_id
+            update_item.quantity = item.quantity
+            update_item.price = session.exec(select(Product).where(
+                    Product.id == item.product_id)).first().sales_price
+            session.add(update_item)
+            session.commit()
+        else:
+            item.id = None
+            session.add(item)
+            session.commit()
+    
+    return session.exec(select(OrderItem).where(
+        OrderItem.order_id == order_items[0].order_id)).all()
+
+
 @sr.get("/invoice")
 async def get_order_total(session: SessionDep, current_user: UserDep, order_id: int):
     if current_user.get("user_role") not in ["admin", "sales", "warehouse"]:

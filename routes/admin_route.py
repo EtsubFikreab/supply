@@ -98,7 +98,7 @@ async def update_product(session: SessionDep, current_user: UserDep, new_product
     if current_user.get("user_role") != "admin":
         return HTTPException(status_code=400, detail="You do not have the required permissions to update a product.")
     db_product = session.exec(select(Product).where(Product.id == new_product.id).where(
-        Product.organization_id == current_user.get("organization_id"))).first()
+        Product.organization_id == current_user.get("user_metadata").get("organization_id"))).first()
     if not db_product:
         return HTTPException(status_code=400, detail="Product does not exist.")
     try:
@@ -128,7 +128,7 @@ async def delete_product(session: SessionDep, current_user: UserDep, product_id:
     if current_user.get("user_role") != "admin":
         return HTTPException(status_code=400, detail="You do not have the required permissions to delete a product.")
     db_product = session.exec(select(Product).where(Product.id == product_id).where(
-        Product.organization_id == current_user.get("organization_id"))).first()
+        Product.organization_id == current_user.get("user_metadata").get("organization_id"))).first()
     if not db_product:
         return HTTPException(status_code=400, detail="Product does not exist.")
     try:
@@ -164,7 +164,7 @@ async def update_warehouse(session: SessionDep, current_user: UserDep, new_wareh
     if current_user.get("user_role") != "admin":
         return HTTPException(status_code=400, detail="You do not have the required permissions to update a warehouse.")
     db_warehouse = session.exec(select(Warehouse).where(Warehouse.id == new_warehouse.id).where(
-        Warehouse.organization_id == current_user.get("organization_id"))).first()
+        Warehouse.organization_id == current_user.get("user_metadata").get("organization_id"))).first()
     if not db_warehouse:
         return HTTPException(status_code=400, detail="Warehouse does not exist.")
     try:

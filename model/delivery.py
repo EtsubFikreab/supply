@@ -32,7 +32,6 @@ class GPSCoordinates(SQLModel, table=True):
     __tablename__ = "gps_coordinates"
 
     id: Optional[int] = Field(default=None, primary_key=True)
-    delivery_id: int = Field(foreign_key="delivery.id", nullable=False)
     delivery_status_id: int = Field(foreign_key="delivery_status_update.id", nullable=False)
     latitude: float = Field(nullable=False)  # Latitude for GPS tracking
     longitude: float = Field(nullable=False)  # Longitude for GPS tracking

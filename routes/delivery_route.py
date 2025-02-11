@@ -5,7 +5,7 @@ from sqlmodel import select, Session
 
 from auth import get_current_user
 from db import get_session
-from model.delivery import Delivery, DeliveryStatusUpdate
+from model.delivery import Delivery, DeliveryStatusUpdate, GPSCoordinates
 from model.orders import Order
 
 SessionDep = Annotated[Session, Depends(get_session)]
@@ -103,7 +103,7 @@ async def delete_delivery(session: SessionDep, current_user: UserDep, delivery_i
 
 @dr.get("/get_delivery_status_updates")
 async def get_delivery_status_updates(session: SessionDep, current_user: UserDep, delivery_id: int):
-    if current_user.get("user_role") not in ["admin", "driver", "warehouse"]:
+    if current_user.get("user_role") not in ["admin", "driver", "warehouse", "sales"]:
         return HTTPException(status_code=400, detail="You do not have the required permissions to view delivery status updates")
     if not session.exec(select(Delivery).where(Delivery.id == delivery_id).where(
             Delivery.organization_id == current_user.get("user_metadata").get("organization_id"))).first():
@@ -156,5 +156,24 @@ async def delete_delivery_status_update(session: SessionDep, current_user: UserD
         session.delete(db_delivery_status_update)
         session.commit()
         return {"message": "Delivery status update deleted successfully"}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@dr.get("/get_delivery_gps")
+async def get_gps_coordinate_of_delivery_that_is_on_route_to_a_client(session: SessionDep, current_user: UserDep, delivery_status_id: int):
+    if current_user.get("user_role") not in ["admin", "warehouse", "sales", "driver"]:
+        return HTTPException(status_code=400, detail="You do not have the required permissions to view GPS coordinates")
+    return session.exec(select(GPSCoordinates).where(GPSCoordinates.delivery_status_id == delivery_status_id)).all()
+
+@dr.post("/add_gps")
+async def create_gps_coordinate_update_this_is_done_by_driver(session: SessionDep, current_user: UserDep, gps: GPSCoordinates = Form(...)):
+    if current_user.get("user_role") not in ["admin", "driver", "warehouse"]:
+        return HTTPException(status_code=400, detail="You do not have the required permissions to create GPS coordinates")
+    try:
+        gps.id = None
+        session.add(gps)
+        session.commit()
+        session.refresh(gps)
+        return gps
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))

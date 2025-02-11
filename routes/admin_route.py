@@ -169,7 +169,8 @@ async def update_warehouse(session: SessionDep, current_user: UserDep, new_wareh
         return HTTPException(status_code=400, detail="Warehouse does not exist.")
     try:
         db_warehouse.name = new_warehouse.name
-        db_warehouse.location = new_warehouse.location
+        db_warehouse.longitude = new_warehouse.longitude
+        db_warehouse.latitude = new_warehouse.latitude
         db_warehouse.updated_at = new_warehouse.updated_at
         session.add(db_warehouse)
         session.commit()

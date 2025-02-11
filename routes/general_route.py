@@ -18,7 +18,8 @@ general_router = gr = APIRouter()
 @gr.get("/organization")
 async def get_user_organization(session: SessionDep, current_user: UserDep):
     try:
-        user_organization_id = current_user.get("user_metadata").get("organization_id")
+        user_organization_id = current_user.get(
+            "user_metadata").get("organization_id")
         organization = session.exec(select(Organization).where(
             Organization.id == user_organization_id)).all()
         if not organization:
@@ -27,20 +28,36 @@ async def get_user_organization(session: SessionDep, current_user: UserDep):
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
+
 @gr.get("/warehouses")
 async def get_user_warehouse(session: SessionDep, current_user: UserDep):
     try:
-        user_organization_id = current_user.get("user_metadata").get("organization_id")
+        user_organization_id = current_user.get(
+            "user_metadata").get("organization_id")
         warehouses = session.exec(select(Warehouse).where(
             Warehouse.organization_id == user_organization_id)).all()
         return warehouses
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
+
+@gr.get("/warehouse_id")
+async def get_warehouse_by_id(session: SessionDep, current_user: UserDep, warehouse_id: int):
+    try:
+        user_organization_id = current_user.get(
+            "user_metadata").get("organization_id")
+        warehouse = session.exec(select(Warehouse).where(
+            Warehouse.organization_id == user_organization_id).where(Warehouse.id == warehouse_id)).first()
+        return warehouse
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
 @gr.get("/products")
 async def get_all_products(session: SessionDep, current_user: UserDep):
     try:
-        user_organization_id = current_user.get("user_metadata").get("organization_id")
+        user_organization_id = current_user.get(
+            "user_metadata").get("organization_id")
         products = session.exec(select(Product).where(
             Product.organization_id == user_organization_id)).all()
         return products
@@ -51,7 +68,8 @@ async def get_all_products(session: SessionDep, current_user: UserDep):
 @gr.get("/product_id")
 async def get_product_by_id(session: SessionDep, current_user: UserDep, product_id: int):
     try:
-        user_organization_id = current_user.get("user_metadata").get("organization_id")
+        user_organization_id = current_user.get(
+            "user_metadata").get("organization_id")
         products = session.exec(select(Product).where(Product.id == product_id).where(
             Product.organization_id == user_organization_id)).all()
         return products
@@ -62,7 +80,8 @@ async def get_product_by_id(session: SessionDep, current_user: UserDep, product_
 @gr.get("/product_name", description="Checks if the search term is in the product name")
 async def search_product_by_name(session: SessionDep, current_user: UserDep, product_name: str):
     try:
-        user_organization_id = current_user.get("user_metadata").get("organization_id")
+        user_organization_id = current_user.get(
+            "user_metadata").get("organization_id")
         products = session.exec(
             select(Product)
             .where(Product.name.ilike(f"%{product_name}%"))

@@ -11,7 +11,7 @@ class Delivery(SQLModel, table=True):
     order_id: int = Field(foreign_key="order.id", nullable=False)
     organization_id: int = Field(foreign_key="organization.id", default=None)
     created_by: Optional[uuid.UUID] = Field(foreign_key="user_roles.user_id", default=None)  # Foreign key to auth.users
-    driver_id: int = Field(foreign_key="driver.id", nullable=False)
+    driver_id: Optional[int] = Field(foreign_key="driver.id", default=None)
     destination_longitude: Optional[float] = Field(default=None)
     destination_latitude: Optional[float] = Field(default=None)
     delivery_instructions: Optional[str] = Field(default=None, max_length=255)  # Delivery instructions 

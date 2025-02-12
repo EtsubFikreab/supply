@@ -8,6 +8,7 @@ from db import get_session
 from model.orders import Order, OrderItem
 from model.product import Product
 from model.user import Client
+from model.delivery import Delivery
 from model.viewmodel import Invoice, ClientOrder
 
 SessionDep = Annotated[Session, Depends(get_session)]
@@ -204,7 +205,7 @@ async def add_multiple_order_items_for_an_order(session: SessionDep, current_use
         if item not in order_items:
             session.delete(item)
             session.commit()
-    
+
     # update item if it exists or add new item
     for item in order_items:
         update_item = session.exec(select(OrderItem).where(
@@ -213,14 +214,14 @@ async def add_multiple_order_items_for_an_order(session: SessionDep, current_use
             update_item.product_id = item.product_id
             update_item.quantity = item.quantity
             update_item.price = session.exec(select(Product).where(
-                    Product.id == item.product_id)).first().sales_price
+                Product.id == item.product_id)).first().sales_price
             session.add(update_item)
             session.commit()
         else:
             item.id = None
             session.add(item)
             session.commit()
-    
+
     return session.exec(select(OrderItem).where(
         OrderItem.order_id == order_items[0].order_id)).all()
 
@@ -245,3 +246,28 @@ async def get_order_total(session: SessionDep, current_user: UserDep, order_id: 
         invoice.total *= 0.9
         # 10% discount for distributors
     return invoice
+
+
+@sr.post("/paid")
+async def order_successfully_paid_and_ready_for_delivery(session: SessionDep, current_user: UserDep, order_id: int):
+    if current_user.get("user_role") not in ["admin", "sales", "warehouse"]:
+        return HTTPException(status_code=400, detail="You do not have the required permissions to mark an order as paid")
+    order = session.exec(select(Order).where(Order.id == order_id).where(
+        Order.organization_id == current_user.get("user_metadata").get("organization_id"))).first()
+    if not order:
+        return HTTPException(status_code=400, detail="Order does not exist.")
+    order.status = "Succeeded"
+    session.add(order)
+    session.commit()
+
+    delivery: Delivery = Delivery()
+    delivery.order_id = order_id
+    delivery.organization_id = current_user.get(
+        "user_metadata").get("organization_id")
+    delivery.created_by = current_user.get("sub")
+
+    session.add(delivery)
+    session.commit()
+    session.refresh(order)
+
+    return order

@@ -190,6 +190,14 @@ async def get_driver_by_id(session: SessionDep, current_user: UserDep, driver_id
         Driver.organization_id == current_user.get("user_metadata").get("organization_id"))).first()
 
 
+@ur.get("/driver_by_userid")
+async def get_driver_by_id(session: SessionDep, current_user: UserDep, user_id: int):
+    if current_user.get("user_role") not in ["admin", "delivery"]:
+        return HTTPException(status_code=400, detail="You do not have the required permissions to view drivers.")
+    return session.exec(select(Driver).where(Driver.driver_id == user_id).where(
+        Driver.organization_id == current_user.get("user_metadata").get("organization_id"))).first()
+
+
 @ur.post("/create_driver")
 async def create_driver(session: SessionDep, current_user: UserDep, new_driver: Driver = Form(...)):
     if current_user.get("user_role") != "admin":
@@ -210,7 +218,7 @@ async def update_driver(session: SessionDep, current_user: UserDep, new_driver: 
     if current_user.get("user_role") != "admin":
         return HTTPException(status_code=400, detail="You do not have the required permissions to update a driver.")
     db_driver = session.exec(select(Driver).where(
-        Driver.id == new_driver.id)).first()
+        Driver.driver_id == new_driver.driver_id)).first()
     if not db_driver:
         return HTTPException(status_code=400, detail="Driver does not exist.")
     try:
@@ -234,6 +242,22 @@ async def delete_driver(session: SessionDep, current_user: UserDep, driver_id: i
         return HTTPException(status_code=400, detail="You do not have the required permissions to delete a driver.")
     db_driver = session.exec(select(Driver).where(
         Driver.id == driver_id)).first()
+    if not db_driver:
+        return HTTPException(status_code=400, detail="Driver does not exist.")
+    try:
+        session.delete(db_driver)
+        session.commit()
+        return {"message": "Driver deleted successfully."}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@ur.delete("/delete_driver_userid")
+async def delete_driver(session: SessionDep, current_user: UserDep, driver_id: int):
+    if current_user.get("user_role") != "admin":
+        return HTTPException(status_code=400, detail="You do not have the required permissions to delete a driver.")
+    db_driver = session.exec(select(Driver).where(
+        Driver.driver_id == driver_id)).first()
     if not db_driver:
         return HTTPException(status_code=400, detail="Driver does not exist.")
     try:

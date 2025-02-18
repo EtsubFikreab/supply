@@ -7,7 +7,7 @@ from auth import get_current_user
 from db import get_session
 from model.orders import Order, OrderItem
 from model.product import Product
-from model.user import Client
+from model.user import Client, Driver
 from model.delivery import Delivery
 from model.viewmodel import Invoice, ClientOrder
 
@@ -281,8 +281,8 @@ async def order_successfully_paid_and_ready_for_delivery(session: SessionDep, cu
 
 
 @sr.get("/warehouse_orders")
-async def get_drivers(session: SessionDep, current_user: UserDep, warehouse_id: int):
-    if current_user.get("user_role") not in ["admin", "delivery", "sales"]:
+async def get_orders_of_warehouse(session: SessionDep, current_user: UserDep, warehouse_id: int):
+    if current_user.get("user_role") not in ["admin", "delivery", "sales", "warehouse"]:
         return HTTPException(status_code=400, detail="You do not have the required permissions to view drivers.")
     return session.exec(
         select(Order).where(
@@ -291,4 +291,16 @@ async def get_drivers(session: SessionDep, current_user: UserDep, warehouse_id: 
         .join(OrderItem)
         .join(Product)
         .where(Product.warehouse_id == warehouse_id)
+    ).all()
+
+
+@sr.get("/driver_order")
+async def get_orders_assigned_driver(session: SessionDep, current_user: UserDep, order_id: int):
+    if current_user.get("user_role") not in ["admin", "delivery", "sales", "warehouse"]:
+        return HTTPException(status_code=400, detail="You do not have the required permissions to view drivers.")
+    return session.exec(
+        select(Driver)
+        .distinct()
+        .join(Delivery)
+        .where(Delivery.order_id == order_id)
     ).all()

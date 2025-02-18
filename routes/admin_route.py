@@ -193,3 +193,4 @@ async def delete_warehouse(session: SessionDep, current_user: UserDep, warehouse
         return {"message": "Warehouse deleted successfully."}
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
+

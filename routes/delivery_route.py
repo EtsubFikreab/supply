@@ -33,7 +33,7 @@ async def get_all_deliveries(session: SessionDep, current_user: UserDep):
 
 
 @dr.get("/deliveries_driver")
-async def get_deliveries_of_specific_driver(session: SessionDep, current_user: UserDep, driver_id: int):
+async def get_deliveries_assigned_to_a_specific_driver_used_in_mobile_app(session: SessionDep, current_user: UserDep, driver_id: int):
     if current_user.get("user_role") not in ["admin", "warehouse", "sales", "driver"]:
         return HTTPException(status_code=400, detail="You do not have the required permissions to view deliveries")
     return session.exec(select(Delivery).where(Delivery.organization_id == current_user.get("user_metadata").get("organization_id")).where(Delivery.driver_id == driver_id)).all()

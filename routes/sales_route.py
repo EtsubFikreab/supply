@@ -78,6 +78,13 @@ async def delete_order(session: SessionDep, current_user: UserDep, order_id: int
         raise HTTPException(status_code=400, detail=str(e))
 
 
+@sr.get("/order_id")
+async def get_order_by_id(session: SessionDep, current_user: UserDep, order_id: int):
+    if current_user.get("user_role") not in ["admin", "sales"]:
+        return HTTPException(status_code=400, detail="You do not have the required permissions to view sales order items")
+    return session.exec(select(Order).where(Order.id == order_id).where(Order.organization_id == current_user.get("user_metadata").get("organization_id"))).first()
+
+
 @sr.get("/order_items")
 async def get_order_items(session: SessionDep, current_user: UserDep, order_id: int):
     if current_user.get("user_role") not in ["admin", "sales"]:
@@ -228,7 +235,7 @@ async def add_multiple_order_items_for_an_order(session: SessionDep, current_use
 
 @sr.get("/invoice")
 async def get_order_total(session: SessionDep, current_user: UserDep, order_id: int):
-    if current_user.get("user_role") not in ["admin", "sales", "warehouse"]:
+    if current_user.get("user_role") not in ["admin", "sales", "warehouse", "driver"]:
         return HTTPException(status_code=400, detail="You do not have the required permissions to view sales order total")
     invoice: Invoice = Invoice()
     invoice.order_details = session.exec(select(Order).where(Order.id == order_id).where(
@@ -271,3 +278,16 @@ async def order_successfully_paid_and_ready_for_delivery(session: SessionDep, cu
     session.refresh(order)
 
     return order
+
+
+@sr.get("/warehouse_orders")
+async def get_drivers(session: SessionDep, current_user: UserDep, warehouse_id: int):
+    if current_user.get("user_role") not in ["admin", "delivery", "sales"]:
+        return HTTPException(status_code=400, detail="You do not have the required permissions to view drivers.")
+    return session.exec(
+        select(Order)
+        .distinct()
+        .join(OrderItem)
+        .join(Product)
+        .where(Product.warehouse_id == warehouse_id)
+    ).all()

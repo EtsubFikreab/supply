@@ -285,7 +285,8 @@ async def get_drivers(session: SessionDep, current_user: UserDep, warehouse_id: 
     if current_user.get("user_role") not in ["admin", "delivery", "sales"]:
         return HTTPException(status_code=400, detail="You do not have the required permissions to view drivers.")
     return session.exec(
-        select(Order)
+        select(Order).where(
+            Order.organization_id == current_user.get("user_metadata").get("organization_id"))
         .distinct()
         .join(OrderItem)
         .join(Product)

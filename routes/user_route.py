@@ -6,11 +6,13 @@ from sqlmodel import select, Session
 from auth import get_current_user
 from db import get_session
 from model.user import Supplier, Client, Driver
+from model.organization import UserOrganization
 
 SessionDep = Annotated[Session, Depends(get_session)]
 UserDep = Annotated[dict, Depends(get_current_user)]
 
 user_router = ur = APIRouter()
+
 
 @ur.post("/create_supplier")
 async def create_supplier(session: SessionDep, current_user: UserDep, new_supplier: Supplier = Form(...)):
@@ -32,17 +34,26 @@ async def create_supplier(session: SessionDep, current_user: UserDep, new_suppli
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
+
 @ur.get("/suppliers")
 async def get_suppliers(session: SessionDep, current_user: UserDep):
     if current_user.get("user_role") not in ["admin", "procurement"]:
         return HTTPException(status_code=400, detail="You do not have the required permissions to view suppliers.")
-    return session.exec(select(Supplier)).all()
+    return session.exec(
+        select(Supplier)
+        .distinct()
+        .join(UserOrganization)
+        .where(Supplier.user_id == UserOrganization.user_id)
+        .where(
+            UserOrganization.organization_id == current_user.get("user_metadata").get("organization_id"))).all()
+
 
 @ur.get("/supplier_by_id")
 async def get_supplier_by_id(session: SessionDep, current_user: UserDep, supplier_id: int):
     if current_user.get("user_role") not in ["admin", "procurement"]:
         return HTTPException(status_code=400, detail="You do not have the required permissions to view suppliers.")
     return session.exec(select(Supplier).where(Supplier.id == supplier_id)).first()
+
 
 @ur.post("/update_supplier")
 async def update_supplier(session: SessionDep, current_user: UserDep, new_supplier: Supplier = Form(...)):
@@ -65,6 +76,7 @@ async def update_supplier(session: SessionDep, current_user: UserDep, new_suppli
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
+
 @ur.delete("/delete_supplier")
 async def delete_supplier(session: SessionDep, current_user: UserDep, supplier_id: int):
     if current_user.get("user_role") != "admin":
@@ -80,11 +92,13 @@ async def delete_supplier(session: SessionDep, current_user: UserDep, supplier_i
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
+
 @ur.get("/supplier_name")
 async def search_supplier_by_name(session: SessionDep, current_user: UserDep, supplier_name: str):
     if current_user.get("user_role") not in ["admin", "procurement"]:
         return HTTPException(status_code=400, detail="You do not have the required permissions to view suppliers.")
     return session.exec(select(Supplier).where(Supplier.company_name.ilike(f"%{supplier_name}%"))).all()
+
 
 @ur.post("/create_client")
 async def create_client(session: SessionDep, current_user: UserDep, new_client: Client = Form(...)):
@@ -92,6 +106,8 @@ async def create_client(session: SessionDep, current_user: UserDep, new_client: 
         return HTTPException(status_code=400, detail="You do not have the required permissions to create a warehouse.")
     try:
         new_client.id = None
+        new_client.organization_id = current_user.get(
+            "user_metadata").get("organization_id")
         session.add(new_client)
         session.commit()
         session.refresh(new_client)
@@ -101,17 +117,21 @@ async def create_client(session: SessionDep, current_user: UserDep, new_client: 
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
+
 @ur.get("/clients")
 async def get_clients(session: SessionDep, current_user: UserDep):
     if current_user.get("user_role") not in ["admin", "sales"]:
         return HTTPException(status_code=400, detail="You do not have the required permissions to view clients.")
-    return session.exec(select(Client)).all()
+    return session.exec(select(Client).where(
+        Client.organization_id == current_user.get("user_metadata").get("organization_id"))).all()
+
 
 @ur.get("/client_by_id")
 async def get_client_by_id(session: SessionDep, current_user: UserDep, client_id: int):
     if current_user.get("user_role") not in ["admin", "sales"]:
         return HTTPException(status_code=400, detail="You do not have the required permissions to view clients.")
     return session.exec(select(Client).where(Client.id == client_id)).first()
+
 
 @ur.post("/update_client")
 async def update_client(session: SessionDep, current_user: UserDep, new_client: Client = Form(...)):
@@ -134,6 +154,7 @@ async def update_client(session: SessionDep, current_user: UserDep, new_client: 
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
+
 @ur.delete("/delete_client")
 async def delete_client(session: SessionDep, current_user: UserDep, client_id: int):
     if current_user.get("user_role") != "admin":
@@ -149,17 +170,25 @@ async def delete_client(session: SessionDep, current_user: UserDep, client_id: i
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
+
 @ur.get("/driver")
 async def get_drivers(session: SessionDep, current_user: UserDep):
     if current_user.get("user_role") not in ["admin", "delivery"]:
         return HTTPException(status_code=400, detail="You do not have the required permissions to view drivers.")
-    return session.exec(select(Driver)).all()
+    return session.exec(select(Driver).distinct()
+                        .join(UserOrganization)
+                        .where(Driver.driver_id == UserOrganization.user_id)
+                        .where(
+        UserOrganization.organization_id == current_user.get("user_metadata").get("organization_id"))).all()
+
 
 @ur.get("/driver_by_id")
 async def get_driver_by_id(session: SessionDep, current_user: UserDep, driver_id: int):
     if current_user.get("user_role") not in ["admin", "delivery"]:
         return HTTPException(status_code=400, detail="You do not have the required permissions to view drivers.")
-    return session.exec(select(Driver).where(Driver.id == driver_id)).first()
+    return session.exec(select(Driver).where(Driver.id == driver_id).where(
+        Driver.organization_id == current_user.get("user_metadata").get("organization_id"))).first()
+
 
 @ur.post("/create_driver")
 async def create_driver(session: SessionDep, current_user: UserDep, new_driver: Driver = Form(...)):
@@ -174,6 +203,7 @@ async def create_driver(session: SessionDep, current_user: UserDep, new_driver: 
 
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
+
 
 @ur.post("/update_driver")
 async def update_driver(session: SessionDep, current_user: UserDep, new_driver: Driver = Form(...)):
@@ -196,6 +226,7 @@ async def update_driver(session: SessionDep, current_user: UserDep, new_driver: 
         return db_driver
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
+
 
 @ur.delete("/delete_driver")
 async def delete_driver(session: SessionDep, current_user: UserDep, driver_id: int):

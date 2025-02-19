@@ -51,7 +51,7 @@ async def get_suppliers(session: SessionDep, current_user: UserDep):
 
 
 @ur.get("/supplier_by_id")
-async def get_supplier_by_id(session: SessionDep, current_user: UserDep, supplier_id: UUID):
+async def get_supplier_by_id(session: SessionDep, current_user: UserDep, supplier_id: int):
     if current_user.get("user_role") not in ["admin", "procurement"]:
         return HTTPException(status_code=400, detail="You do not have the required permissions to view suppliers.")
     return session.exec(select(Supplier).where(Supplier.id == supplier_id)).first()

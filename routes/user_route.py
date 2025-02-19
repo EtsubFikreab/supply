@@ -1,3 +1,5 @@
+from uuid import UUID
+
 from fastapi import Depends, HTTPException, Form
 from typing import Annotated
 from fastapi.routing import APIRouter
@@ -77,12 +79,50 @@ async def update_supplier(session: SessionDep, current_user: UserDep, new_suppli
         raise HTTPException(status_code=400, detail=str(e))
 
 
+@ur.post("/update_supplier_userid")
+async def update_supplier_by_userID(session: SessionDep, current_user: UserDep, new_supplier: Supplier = Form(...)):
+    if current_user.get("user_role") != "admin":
+        return HTTPException(status_code=400, detail="You do not have the required permissions to update a supplier.")
+    db_supplier = session.exec(select(Supplier).where(
+        Supplier.user_id == new_supplier.user_id)).first()
+    if not db_supplier:
+        return HTTPException(status_code=400, detail="Supplier does not exist.")
+    try:
+        db_supplier.company_name = new_supplier.company_name
+        db_supplier.contact_person_name = new_supplier.contact_person_name
+        db_supplier.email = new_supplier.email
+        db_supplier.phone = new_supplier.phone
+
+        session.add(db_supplier)
+        session.commit()
+        session.refresh(db_supplier)
+        return db_supplier
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
 @ur.delete("/delete_supplier")
 async def delete_supplier(session: SessionDep, current_user: UserDep, supplier_id: int):
     if current_user.get("user_role") != "admin":
         return HTTPException(status_code=400, detail="You do not have the required permissions to delete a supplier.")
     db_supplier = session.exec(select(Supplier).where(
         Supplier.id == supplier_id)).first()
+    if not db_supplier:
+        return HTTPException(status_code=400, detail="Supplier does not exist.")
+    try:
+        session.delete(db_supplier)
+        session.commit()
+        return {"message": "Supplier deleted successfully."}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@ur.delete("/delete_supplier_userid")
+async def delete_supplier_by_userID(session: SessionDep, current_user: UserDep, user_id: int):
+    if current_user.get("user_role") != "admin":
+        return HTTPException(status_code=400, detail="You do not have the required permissions to delete a supplier.")
+    db_supplier = session.exec(select(Supplier).where(
+        Supplier.user_id == user_id)).first()
     if not db_supplier:
         return HTTPException(status_code=400, detail="Supplier does not exist.")
     try:
@@ -191,7 +231,7 @@ async def get_driver_by_id(session: SessionDep, current_user: UserDep, driver_id
 
 
 @ur.get("/driver_by_userid")
-async def get_driver_by_id(session: SessionDep, current_user: UserDep, user_id: int):
+async def get_driver_by_id(session: SessionDep, current_user: UserDep, user_id: UUID):
     if current_user.get("user_role") not in ["admin", "delivery"]:
         return HTTPException(status_code=400, detail="You do not have the required permissions to view drivers.")
     return session.exec(select(Driver).where(Driver.driver_id == user_id).where(
@@ -253,11 +293,11 @@ async def delete_driver(session: SessionDep, current_user: UserDep, driver_id: i
 
 
 @ur.delete("/delete_driver_userid")
-async def delete_driver(session: SessionDep, current_user: UserDep, driver_id: int):
+async def delete_driver(session: SessionDep, current_user: UserDep, user_id: UUID):
     if current_user.get("user_role") != "admin":
         return HTTPException(status_code=400, detail="You do not have the required permissions to delete a driver.")
     db_driver = session.exec(select(Driver).where(
-        Driver.driver_id == driver_id)).first()
+        Driver.driver_id == user_id)).first()
     if not db_driver:
         return HTTPException(status_code=400, detail="Driver does not exist.")
     try:

@@ -7,6 +7,7 @@ from auth import get_current_user
 from db import get_session
 from model.delivery import Delivery, DeliveryStatusUpdate, GPSCoordinates
 from model.orders import Order
+from model.viewmodel import DeliveryAndStatus
 
 SessionDep = Annotated[Session, Depends(get_session)]
 UserDep = Annotated[dict, Depends(get_current_user)]
@@ -30,6 +31,19 @@ async def get_all_deliveries(session: SessionDep, current_user: UserDep):
     if current_user.get("user_role") not in ["admin", "warehouse", "sales"]:
         return HTTPException(status_code=400, detail="You do not have the required permissions to view deliveries")
     return session.exec(select(Delivery).where(Delivery.organization_id == current_user.get("user_metadata").get("organization_id"))).all()
+
+
+@dr.get("/deliveries_status")
+async def get_all_deliveries_along_with_their_status(session: SessionDep, current_user: UserDep):
+    if current_user.get("user_role") not in ["admin", "warehouse", "sales"]:
+        return HTTPException(status_code=400, detail="You do not have the required permissions to view deliveries")
+    delivery_and_status = DeliveryAndStatus()
+    delivery_and_status.delivery = session.exec(select(Delivery).where(
+        Delivery.organization_id == current_user.get("user_metadata").get("organization_id"))).all()
+    for ds in delivery_and_status:
+        ds.delivery_status = session.exec(select(DeliveryStatusUpdate).where(
+            DeliveryStatusUpdate.delivery_id == ds.delivery.id)).all()
+    return delivery_and_status
 
 
 @dr.get("/deliveries_driver")
@@ -159,11 +173,13 @@ async def delete_delivery_status_update(session: SessionDep, current_user: UserD
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
+
 @dr.get("/get_delivery_gps")
 async def get_gps_coordinate_of_delivery_that_is_on_route_to_a_client(session: SessionDep, current_user: UserDep, delivery_status_id: int):
     if current_user.get("user_role") not in ["admin", "warehouse", "sales", "driver"]:
         return HTTPException(status_code=400, detail="You do not have the required permissions to view GPS coordinates")
     return session.exec(select(GPSCoordinates).where(GPSCoordinates.delivery_status_id == delivery_status_id)).all()
+
 
 @dr.post("/add_gps")
 async def create_gps_coordinate_update_this_is_done_by_driver(session: SessionDep, current_user: UserDep, gps: GPSCoordinates = Form(...)):

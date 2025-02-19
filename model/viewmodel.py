@@ -1,7 +1,9 @@
 from datetime import datetime
+from typing import Optional
 
 from sqlmodel import Field, SQLModel
 
+from model.delivery import Delivery
 from model.orders import Order, OrderItem
 from model.user import Client
 
@@ -23,3 +25,8 @@ class ClientOrder(SQLModel, table=False):
 
     # e.g., Pending, Dispatched, Delivered
     order_date: datetime = Field(default_factory=datetime.utcnow)
+
+
+class DeliveryAndStatus(SQLModel, table=False):
+    delivery: Optional[list[Delivery]] = Field(default=None)
+    delivery_status: Optional[list[str]] = Field(default=None)

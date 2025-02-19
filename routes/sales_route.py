@@ -5,7 +5,7 @@ from sqlmodel import select, Session
 
 from auth import get_current_user
 from db import get_session
-from model.orders import Order, OrderItem
+from model.orders import Order, OrderItem, Transaction
 from model.product import Product
 from model.user import Client, Driver
 from model.delivery import Delivery
@@ -275,9 +275,58 @@ async def order_successfully_paid_and_ready_for_delivery(session: SessionDep, cu
 
     session.add(delivery)
     session.commit()
+
+    invoice: Invoice = Invoice()
+    invoice.order_details = session.exec(select(Order).where(Order.id == order_id).where(
+        Order.organization_id == current_user.get("user_metadata").get("organization_id"))).first()
+    if not invoice.order_details:
+        return HTTPException(status_code=400, detail="Order does not exist.")
+    invoice.order_items = session.exec(
+        select(OrderItem).where(OrderItem.order_id == order_id)).all()
+    invoice.total = 0
+    for item in invoice.order_items:
+        invoice.total += item.price * item.quantity
+    invoice.client_details = session.exec(select(Client).where(
+        Client.id == invoice.order_details.client_id)).first()
+    if invoice.client_details.client_type == "Distributor":
+        invoice.total *= 0.9
+
+    transaction: Transaction = Transaction()
+    transaction.order_id = order_id
+    transaction.payment_amount = invoice.total
+    transaction.organization_id = current_user.get(
+        "user_metadata").get("organization_id")
+    transaction.payment_method = "Cash"
+
+    session.add(transaction)
+    session.commit()
+
     session.refresh(order)
 
     return order
+
+
+@sr.get("/transactions")
+async def get_transactions(session: SessionDep, current_user: UserDep):
+    if current_user.get("user_role") not in ["admin", "sales"]:
+        return HTTPException(status_code=400, detail="You do not have the required permissions to view transactions")
+    return session.exec(select(Transaction).where(Transaction.organization_id == current_user.get("user_metadata").get("organization_id"))).all()
+
+
+@sr.post("/create_transaction")
+async def create_transaction(session: SessionDep, current_user: UserDep, new_transaction: Transaction = Form(...)):
+    if current_user.get("user_role") not in ["admin", "sales"]:
+        return HTTPException(status_code=400, detail="You do not have the required permissions to create a transaction")
+    try:
+        new_transaction.id = None
+        new_transaction.organization_id = current_user.get(
+            "user_metadata").get("organization_id")
+        session.add(new_transaction)
+        session.commit()
+        session.refresh(new_transaction)
+        return new_transaction
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 
 @sr.get("/warehouse_orders")

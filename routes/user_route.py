@@ -293,7 +293,7 @@ async def delete_driver(session: SessionDep, current_user: UserDep, driver_id: i
 
 
 @ur.delete("/delete_driver_userid")
-async def delete_driver(session: SessionDep, current_user: UserDep, user_id: UUID):
+async def delete_driver_by_userID(session: SessionDep, current_user: UserDep, user_id: UUID):
     if current_user.get("user_role") != "admin":
         return HTTPException(status_code=400, detail="You do not have the required permissions to delete a driver.")
     db_driver = session.exec(select(Driver).where(

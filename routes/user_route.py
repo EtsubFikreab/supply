@@ -118,7 +118,7 @@ async def delete_supplier(session: SessionDep, current_user: UserDep, supplier_i
 
 
 @ur.delete("/delete_supplier_userid")
-async def delete_supplier_by_userID(session: SessionDep, current_user: UserDep, user_id: int):
+async def delete_supplier_by_userID(session: SessionDep, current_user: UserDep, user_id: UUID):
     if current_user.get("user_role") != "admin":
         return HTTPException(status_code=400, detail="You do not have the required permissions to delete a supplier.")
     db_supplier = session.exec(select(Supplier).where(

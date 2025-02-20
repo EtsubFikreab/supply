@@ -125,6 +125,16 @@ async def get_delivery_status_updates(session: SessionDep, current_user: UserDep
     return session.exec(select(DeliveryStatusUpdate).where(DeliveryStatusUpdate.delivery_id == delivery_id)).all()
 
 
+@dr.get("/get_latest_delivery_status_update")
+async def get_the_latest_delivery_status_update(session: SessionDep, current_user: UserDep, delivery_id: int):
+    if current_user.get("user_role") not in ["admin", "driver", "warehouse", "sales"]:
+        return HTTPException(status_code=400, detail="You do not have the required permissions to view delivery status updates")
+    if not session.exec(select(Delivery).where(Delivery.id == delivery_id).where(
+            Delivery.organization_id == current_user.get("user_metadata").get("organization_id"))).first():
+        return HTTPException(status_code=400, detail="Delivery does not exist.")
+    return session.exec(select(DeliveryStatusUpdate).where(DeliveryStatusUpdate.delivery_id == delivery_id).order_by(DeliveryStatusUpdate.timestamp.desc())).first()
+
+
 @dr.post("/create_delivery_status")
 async def create_delivery_status_update(session: SessionDep, current_user: UserDep, delivery_status_update: DeliveryStatusUpdate = Form(...)):
     if current_user.get("user_role") not in ["admin", "driver", "warehouse"]:

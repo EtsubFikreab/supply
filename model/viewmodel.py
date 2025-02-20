@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Optional
+from typing import Optional, Sequence, List, Tuple
 
 from sqlmodel import Field, SQLModel
 
@@ -13,6 +13,7 @@ class Invoice:
     order_items: OrderItem
     client_details: Client
     total: float
+    product_map: [int, str, int]  # product_id, product_name, quantity
 
 
 class ClientOrder(SQLModel, table=False):
@@ -28,5 +29,5 @@ class ClientOrder(SQLModel, table=False):
 
 
 class DeliveryAndStatus(SQLModel, table=False):
-    delivery: Optional[list[Delivery]] = Field(default=None)
+    delivery: Optional[Sequence[Delivery]] = Field(default=None)
     delivery_status: Optional[list[str]] = Field(default=None)

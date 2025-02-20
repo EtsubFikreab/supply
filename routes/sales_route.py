@@ -252,6 +252,14 @@ async def get_order_total(session: SessionDep, current_user: UserDep, order_id: 
     if invoice.client_details.client_type == "Distributor":
         invoice.total *= 0.9
         # 10% discount for distributors
+    invoice.product_map = []
+    for item in invoice.order_items:
+        product = session.exec(
+            select(Product).where(Product.id == item.product_id)
+        ).first()
+        if product:
+            invoice.product_map.append((product.id, product.name, product.warehouse_id))
+    
     return invoice
 
 

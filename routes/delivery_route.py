@@ -122,7 +122,7 @@ async def get_delivery_status_updates(session: SessionDep, current_user: UserDep
     if not session.exec(select(Delivery).where(Delivery.id == delivery_id).where(
             Delivery.organization_id == current_user.get("user_metadata").get("organization_id"))).first():
         return HTTPException(status_code=400, detail="Delivery does not exist.")
-    return session.exec(select(DeliveryStatusUpdate).where(DeliveryStatusUpdate.delivery_id == delivery_id)).all()
+    return session.exec(select(DeliveryStatusUpdate).where(DeliveryStatusUpdate.delivery_id == delivery_id).order_by(DeliveryStatusUpdate.timestamp.asc())).all()
 
 
 @dr.get("/get_latest_delivery_status_update")

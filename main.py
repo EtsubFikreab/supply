@@ -3,6 +3,7 @@ from fastapi import FastAPI
 from auth import auth_middleware
 from routes.admin_route import admin_router
 from routes.auth_route import auth_router
+from routes.dashboard_route import dashboard_router
 from routes.delivery_route import delivery_router
 from routes.general_route import general_router
 from routes.procurement_route import procurement_router
@@ -20,6 +21,7 @@ app.include_router(procurement_router, prefix="/procurement")
 app.include_router(general_router)
 app.include_router(sales_router, prefix="/sales")
 app.include_router(delivery_router, prefix="/delivery")
+app.include_router(dashboard_router, prefix="/dashboard")
 
 app.get("/")
 def root():

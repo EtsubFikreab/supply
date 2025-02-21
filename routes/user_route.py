@@ -233,16 +233,14 @@ async def get_drivers(session: SessionDep, current_user: UserDep):
 async def get_driver_by_id(session: SessionDep, current_user: UserDep, driver_id: int):
     if current_user.get("user_role") not in ["admin", "delivery"]:
         return HTTPException(status_code=400, detail="You do not have the required permissions to view drivers.")
-    return session.exec(select(Driver).where(Driver.id == driver_id).where(
-        Driver.organization_id == current_user.get("user_metadata").get("organization_id"))).first()
+    return session.exec(select(Driver).where(Driver.id == driver_id)).first()
 
 
 @ur.get("/driver_by_userid")
 async def get_driver_by_id(session: SessionDep, current_user: UserDep, user_id: UUID):
     if current_user.get("user_role") not in ["admin", "delivery"]:
         return HTTPException(status_code=400, detail="You do not have the required permissions to view drivers.")
-    return session.exec(select(Driver).where(Driver.driver_id == user_id).where(
-        Driver.organization_id == current_user.get("user_metadata").get("organization_id"))).first()
+    return session.exec(select(Driver).where(Driver.driver_id == user_id)).first()
 
 
 @ur.post("/create_driver")

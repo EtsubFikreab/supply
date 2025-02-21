@@ -8,12 +8,21 @@ from model.orders import Order, OrderItem
 from model.user import Client
 
 
+class Product_map:
+    product_id: int
+    product_name: str
+    warehouse_id: int
+    warehouse_name: str
+    quantity: float
+    price: float
+
+
 class Invoice:
     order_details: Order
     order_items: OrderItem
     client_details: Client
-    total: float
-    product_map: [int, str, int]  # product_id, product_name, quantity
+    total: float = 0
+    product_map: List[Product_map] = []
 
 
 class ClientOrder(SQLModel, table=False):

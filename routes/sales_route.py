@@ -10,6 +10,7 @@ from model.product import Product
 from model.user import Client, Driver
 from model.delivery import Delivery
 from model.viewmodel import Invoice, ClientOrder, Product_map
+from model.warehouse import Warehouse
 
 SessionDep = Annotated[Session, Depends(get_session)]
 UserDep = Annotated[dict, Depends(get_current_user)]
@@ -254,16 +255,20 @@ async def get_order_total(session: SessionDep, current_user: UserDep, order_id: 
         # 10% discount for distributors
     invoice.product_map = []
     for item in invoice.order_items:
-        product = session.exec(
-            select(Product).where(Product.id == item.product_id)
-        ).first()
-        if product:
-            # If there's no warehouse_name in Product, use a placeholder or remove warehouse_name
-            warehouse_name = getattr(product, "warehouse_name", "N/A")
-            Product
-            invoice.product_map.append(
+        pm: Product_map = Product_map()
 
-            )
+        product: Product = session.exec(
+            select(Product).where(Product.id == item.product_id)).first()
+        warehouse: Warehouse = session.exec(
+            select(Warehouse).where(Warehouse.id == product.warehouse_id)).first()
+        pm.product_id = item.id
+        pm.product_name = product.name
+        pm.warehouse_id = product.warehouse_id
+        pm.warehouse_name = warehouse.name
+        pm.quantity = item.quantity
+        pm.price = item.price
+
+        invoice.product_map.append(pm)
 
     return invoice
 

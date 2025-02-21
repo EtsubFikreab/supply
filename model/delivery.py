@@ -14,6 +14,7 @@ class Delivery(SQLModel, table=True):
     driver_id: Optional[int] = Field(foreign_key="driver.id", default=None)
     destination_longitude: Optional[float] = Field(default=None)
     destination_latitude: Optional[float] = Field(default=None)
+    destination_name: Optional[str] = Field(default=None, max_length=255)  # Delivery instructions 
     delivery_instructions: Optional[str] = Field(default=None, max_length=255)  # Delivery instructions 
     started_at: datetime = Field(default_factory=datetime.utcnow)
     delivered_at: Optional[datetime] = Field(default=None)

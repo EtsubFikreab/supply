@@ -93,6 +93,13 @@ async def update_delivery(session: SessionDep, current_user: UserDep, new_delive
 
         session.add(db_delivery)
         session.commit()
+
+        delivery_status_update: DeliveryStatusUpdate = DeliveryStatusUpdate()
+        delivery_status_update.delivery_id = db_delivery.id
+        delivery_status_update.delivery_status = "Pending"
+        session.add(delivery_status_update)
+        session.commit()
+
         session.refresh(db_delivery)
         return db_delivery
     except Exception as e:
@@ -141,6 +148,70 @@ async def create_delivery_status_update(session: SessionDep, current_user: UserD
         return HTTPException(status_code=400, detail="You do not have the required permissions to update a delivery")
     try:
         delivery_status_update.id = None
+        session.add(delivery_status_update)
+        session.commit()
+        session.refresh(delivery_status_update)
+        return delivery_status_update
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@dr.post("/delivery_packed")
+async def status_update_order_is_ready_for_delivery(session: SessionDep, current_user: UserDep, delivery_id: int):
+    if current_user.get("user_role") not in ["admin", "driver", "warehouse"]:
+        return HTTPException(status_code=400, detail="You do not have the required permissions to update a delivery")
+    try:
+        delivery_status_update: DeliveryStatusUpdate = DeliveryStatusUpdate()
+        delivery_status_update.delivery_id = delivery_id
+        delivery_status_update.delivery_status = "Packed"
+        session.add(delivery_status_update)
+        session.commit()
+        session.refresh(delivery_status_update)
+        return delivery_status_update
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@dr.post("/delivery_picked_up")
+async def status_update_delivery_is_picked_up_by_the_driver_and_is_in_transit(session: SessionDep, current_user: UserDep, delivery_id: int):
+    if current_user.get("user_role") not in ["admin", "driver", "warehouse"]:
+        return HTTPException(status_code=400, detail="You do not have the required permissions to update a delivery")
+    try:
+        delivery_status_update: DeliveryStatusUpdate = DeliveryStatusUpdate()
+        delivery_status_update.delivery_id = delivery_id
+        delivery_status_update.delivery_status = "In Transit"
+        session.add(delivery_status_update)
+        session.commit()
+        session.refresh(delivery_status_update)
+        return delivery_status_update
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@dr.post("/delivery_delivered")
+async def status_update_delivery_has_arrived_at_its_destination(session: SessionDep, current_user: UserDep, delivery_id: int):
+    if current_user.get("user_role") not in ["admin", "driver", "warehouse"]:
+        return HTTPException(status_code=400, detail="You do not have the required permissions to update a delivery")
+    try:
+        delivery_status_update: DeliveryStatusUpdate = DeliveryStatusUpdate()
+        delivery_status_update.delivery_id = delivery_id
+        delivery_status_update.delivery_status = "Delivered"
+        session.add(delivery_status_update)
+        session.commit()
+        session.refresh(delivery_status_update)
+        return delivery_status_update
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@dr.post("/delivery_delay")
+async def status_update_delivery_has_arrived_at_its_destination(session: SessionDep, current_user: UserDep, delivery_id: int):
+    if current_user.get("user_role") not in ["admin", "driver", "warehouse"]:
+        return HTTPException(status_code=400, detail="You do not have the required permissions to update a delivery")
+    try:
+        delivery_status_update: DeliveryStatusUpdate = DeliveryStatusUpdate()
+        delivery_status_update.delivery_id = delivery_id
+        delivery_status_update.delivery_status = "Delayed"
         session.add(delivery_status_update)
         session.commit()
         session.refresh(delivery_status_update)

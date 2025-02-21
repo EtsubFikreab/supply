@@ -281,6 +281,9 @@ async def order_successfully_paid_and_ready_for_delivery(session: SessionDep, cu
         Order.organization_id == current_user.get("user_metadata").get("organization_id"))).first()
     if not order:
         return HTTPException(status_code=400, detail="Order does not exist.")
+    if order.status == "Succeeded":
+        return HTTPException(status_code=400, detail="Order already paid.")
+    
     order.status = "Succeeded"
     session.add(order)
     session.commit()

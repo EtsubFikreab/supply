@@ -7,6 +7,7 @@ from auth import get_current_user
 from db import get_session
 from model.organization import Organization
 from model.product import Product
+from model.user import Driver
 from model.warehouse import Warehouse
 
 SessionDep = Annotated[Session, Depends(get_session)]
@@ -88,5 +89,14 @@ async def search_product_by_name(session: SessionDep, current_user: UserDep, pro
             .where(Product.organization_id == user_organization_id)
         ).all()
         return products
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@gr.get("/driver_id")
+async def get_driver_id(session: SessionDep, current_user: UserDep):
+    try:
+        return session.exec(select(Driver).where(
+            Driver.driver_id == current_user.get("sub"))).all()
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))

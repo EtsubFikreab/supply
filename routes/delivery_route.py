@@ -94,11 +94,12 @@ async def update_delivery(session: SessionDep, current_user: UserDep, new_delive
         session.add(db_delivery)
         session.commit()
 
-        delivery_status_update: DeliveryStatusUpdate = DeliveryStatusUpdate()
-        delivery_status_update.delivery_id = db_delivery.id
-        delivery_status_update.delivery_status = "Pending"
-        session.add(delivery_status_update)
-        session.commit()
+        if not session.exec(select(DeliveryStatusUpdate).where(DeliveryStatusUpdate.delivery_id == db_delivery.id)).first():
+            delivery_status_update: DeliveryStatusUpdate = DeliveryStatusUpdate()
+            delivery_status_update.delivery_id = db_delivery.id
+            delivery_status_update.delivery_status = "Pending"
+            session.add(delivery_status_update)
+            session.commit()
 
         session.refresh(db_delivery)
         return db_delivery

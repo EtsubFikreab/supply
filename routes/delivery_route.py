@@ -1,12 +1,13 @@
 from fastapi import Depends, HTTPException, Form
 from typing import Annotated
 from fastapi.routing import APIRouter
-from sqlmodel import select, Session
+from sqlmodel import select, Session, or_
 
 from auth import get_current_user
 from db import get_session
 from model.delivery import Delivery, DeliveryStatusUpdate, GPSCoordinates
-from model.orders import Order
+from model.orders import Order, OrderItem
+from model.product import Product
 from model.viewmodel import DeliveryAndStatus
 
 SessionDep = Annotated[Session, Depends(get_session)]
@@ -33,24 +34,25 @@ async def get_all_deliveries(session: SessionDep, current_user: UserDep):
     return session.exec(select(Delivery).where(Delivery.organization_id == current_user.get("user_metadata").get("organization_id"))).all()
 
 
-@dr.get("/deliveries_status")
-async def get_all_deliveries_along_with_their_status(session: SessionDep, current_user: UserDep):
-    if current_user.get("user_role") not in ["admin", "warehouse", "sales"]:
-        return HTTPException(status_code=400, detail="You do not have the required permissions to view deliveries")
-    delivery_and_status = DeliveryAndStatus()
-    delivery_and_status.delivery = session.exec(select(Delivery).where(
-        Delivery.organization_id == current_user.get("user_metadata").get("organization_id"))).all()
-    for ds in delivery_and_status:
-        ds.delivery_status = session.exec(select(DeliveryStatusUpdate).where(
-            DeliveryStatusUpdate.delivery_id == ds.delivery.id)).all()
-    return delivery_and_status
-
-
 @dr.get("/deliveries_driver")
 async def get_deliveries_assigned_to_a_specific_driver_used_in_mobile_app(session: SessionDep, current_user: UserDep, driver_id: int):
     if current_user.get("user_role") not in ["admin", "warehouse", "sales", "driver"]:
         return HTTPException(status_code=400, detail="You do not have the required permissions to view deliveries")
-    return session.exec(select(Delivery).where(Delivery.organization_id == current_user.get("user_metadata").get("organization_id")).where(Delivery.driver_id == driver_id)).all()
+    return session.exec(select(Delivery).where(Delivery.organization_id == current_user.get("user_metadata").get("organization_id"))
+                        .where(Delivery.driver_id == driver_id)
+                        .join(DeliveryStatusUpdate)
+                        .where(or_(DeliveryStatusUpdate.delivery_status == "Packed", DeliveryStatusUpdate.delivery_status == "In Transit", DeliveryStatusUpdate.delivery_status == "Delayed"))
+                        .where(DeliveryStatusUpdate.delivery_status != "Delivered")).all()
+
+
+@dr.get("/deliveries_driver_history")
+async def get_deliveries_that_a_specific_driver_has_delivered(session: SessionDep, current_user: UserDep, driver_id: int):
+    if current_user.get("user_role") not in ["admin", "warehouse", "sales", "driver"]:
+        return HTTPException(status_code=400, detail="You do not have the required permissions to view deliveries")
+    return session.exec(select(Delivery)
+                        .where(Delivery.organization_id == current_user.get("user_metadata").get("organization_id"))
+                        .where(Delivery.driver_id == driver_id)
+                        .join(DeliveryStatusUpdate).where(DeliveryStatusUpdate.delivery_status == "Delivered")).all()
 
 
 @dr.get("/delivery")
@@ -88,6 +90,7 @@ async def update_delivery(session: SessionDep, current_user: UserDep, new_delive
         db_delivery.destination_longitude = new_delivery.destination_longitude
         db_delivery.destination_latitude = new_delivery.destination_latitude
         db_delivery.delivery_instructions = new_delivery.delivery_instructions
+        db_delivery.destination_name = new_delivery.destination_name
         db_delivery.delivered_at = new_delivery.delivered_at
         db_delivery.client_signature = new_delivery.client_signature
 
@@ -167,6 +170,21 @@ async def status_update_order_is_ready_for_delivery(session: SessionDep, current
         delivery_status_update.delivery_status = "Packed"
         session.add(delivery_status_update)
         session.commit()
+
+        delivery = session.exec(select(Delivery).where(
+            Delivery.id == delivery_id)).first()
+        order = session.exec(select(Order).where(
+            Order.id == delivery.order_id)).first()
+        order_items = session.exec(select(OrderItem).where(
+            OrderItem.order_id == order.id)).all()
+
+        for order_item in order_items:
+            product = session.exec(select(Product).where(
+                Product.id == order_item.product_id)).first()
+            product.quantity -= order_item.quantity
+            session.add(product)
+            session.commit()
+
         session.refresh(delivery_status_update)
         return delivery_status_update
     except Exception as e:

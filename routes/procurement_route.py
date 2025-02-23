@@ -9,6 +9,7 @@ from sqlmodel import select, Session
 
 from auth import get_current_user
 from db import get_session
+from model.product import Product
 from model.user import Supplier
 from model.rfq import RFQ, Quotation
 
@@ -32,7 +33,8 @@ async def create_request_for_rfq(session: SessionDep, current_user: UserDep, new
     try:
         new_rfq.id = None
         new_rfq.created_by = current_user.get("sub")
-        new_rfq.organization_id = current_user.get("user_metadata").get("organization_id")
+        new_rfq.organization_id = current_user.get(
+            "user_metadata").get("organization_id")
         session.add(new_rfq)
         session.commit()
         session.refresh(new_rfq)
@@ -96,7 +98,7 @@ async def create_quotation(session: SessionDep, current_user: UserDep, new_quota
     if current_user.get("user_role") not in ["admin", "procurer", "supplier"]:
         return HTTPException(status_code=400, detail="You do not have the required permissions to create a quotation")
     try:
-        if new_quotation.selected=="true":
+        if new_quotation.selected == "true":
             new_quotation.selected = True
         else:
             new_quotation.selected = False
@@ -111,15 +113,17 @@ async def create_quotation(session: SessionDep, current_user: UserDep, new_quota
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
+
 @pr.post("/update_quotation")
 async def update_quotation(session: SessionDep, current_user: UserDep, new_quotation: Quotation = Form(...)):
     if current_user.get("user_role") not in ["admin", "procurer", "supplier"]:
         return HTTPException(status_code=400, detail="You do not have the required permissions to update a quotation")
-    db_quotation = session.exec(select(Quotation).where(Quotation.id == new_quotation.id)).first()
+    db_quotation = session.exec(select(Quotation).where(
+        Quotation.id == new_quotation.id)).first()
     if not db_quotation:
         return HTTPException(status_code=400, detail="Quotation does not exist.")
     try:
-        if new_quotation.selected=="true":
+        if new_quotation.selected == "true":
             new_quotation.selected = True
         else:
             new_quotation.selected = False
@@ -134,23 +138,27 @@ async def update_quotation(session: SessionDep, current_user: UserDep, new_quota
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
+
 @pr.delete("/delete_quotation")
 async def delete_quotation(session: SessionDep, current_user: UserDep, quotation_id: int):
     if current_user.get("user_role") not in ["admin", "procurer"]:
         return HTTPException(status_code=400, detail="You do not have the required permissions to delete a quotation")
-    db_quotation = session.exec(select(Quotation).where(Quotation.id == quotation_id)).first()
+    db_quotation = session.exec(select(Quotation).where(
+        Quotation.id == quotation_id)).first()
     if not db_quotation:
         return HTTPException(status_code=400, detail="Quotation does not exist.")
     session.delete(db_quotation)
     session.commit()
     return {"message": "Quotation deleted successfully."}
 
+
 @pr.post("/select_quotation")
 async def select_quotation(session: SessionDep, current_user: UserDep, quotation_id: int):
     if current_user.get("user_role") not in ["admin", "procurer"]:
         return HTTPException(status_code=400, detail="You do not have the required permissions to select a quotation")
     try:
-        db_quotation = session.exec(select(Quotation).where(Quotation.id == quotation_id)).first()
+        db_quotation = session.exec(select(Quotation).where(
+            Quotation.id == quotation_id)).first()
         if not db_quotation:
             return HTTPException(status_code=400, detail="Quotation does not exist.")
         db_quotation.selected = True
@@ -161,25 +169,59 @@ async def select_quotation(session: SessionDep, current_user: UserDep, quotation
         raise HTTPException(status_code=400, detail=str(e))
     # Send email to supplier
     try:
-        supplier = session.exec(select(Supplier).where(Supplier.id == db_quotation.supplier_id)).first()
+        supplier = session.exec(select(Supplier).where(
+            Supplier.id == db_quotation.supplier_id)).first()
         if supplier and supplier.email:
             sender_email = "procurement@supplychain.com"
             receiver_email = supplier.email
             subject = "Quotation Selected"
             body = f"Dear {supplier.company_name},\n\nYour quotation with ID {quotation_id} has been selected.\n\nBest regards,\nYour Company"
-            
+
             message = MIMEMultipart()
             message["From"] = sender_email
             message["To"] = receiver_email
             message["Subject"] = subject
             message.attach(MIMEText(body, "plain"))
-            
+
             with smtplib.SMTP("localhost", 587) as server:
                 server.starttls()
                 server.login(sender_email, "your_password")
-                server.sendmail(sender_email, receiver_email, message.as_string())
+                server.sendmail(sender_email, receiver_email,
+                                message.as_string())
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-    
-
     return db_quotation
+
+
+@pr.post("/product_delivered")
+async def product_that_was_procured_arrives_at_the_warehouse(session: SessionDep, current_user: UserDep, rfq_id: int):
+    if current_user.get("user_role") not in ["admin", "procurer", "warehouse"]:
+        return HTTPException(status_code=400, detail="You do not have the required permissions to update a request for quotation")
+
+    db_rfq = session.exec(
+        select(RFQ)
+        .where(RFQ.id == rfq_id)
+        .where(RFQ.organization_id == current_user.get("user_metadata").get("organization_id"))
+    ).first()
+    if not db_rfq:
+        return HTTPException(status_code=400, detail="Request for quotation does not exist.")
+
+    try:
+        db_rfq.status = "Delivered"
+        session.add(db_rfq)
+
+        product: Product = session.exec(
+            select(Product).where(Product.id == db_rfq.product_id)
+        ).first()
+
+        if not product:
+            return HTTPException(status_code=400, detail="Product not found.")
+
+        product.quantity += db_rfq.required_quantity
+        session.add(product)
+        session.commit()
+
+        session.refresh(db_rfq)
+        return db_rfq
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))

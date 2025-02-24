@@ -9,8 +9,10 @@ class RFQ(SQLModel, table=True):
     __tablename__ = "rfq"
 
     id: Optional[int] = Field(default=None, primary_key=True)
-    created_by: Optional[uuid.UUID] = Field(foreign_key="user_roles.user_id", default=None)
-    organization_id: Optional[int] = Field(foreign_key="organization.id", default=None)
+    created_by: Optional[uuid.UUID] = Field(
+        foreign_key="user_roles.user_id", default=None)
+    organization_id: Optional[int] = Field(
+        foreign_key="organization.id", default=None)
     product_id: int = Field(foreign_key="product.id", nullable=False)
     created_at: datetime = Field(default_factory=datetime.utcnow)
     required_quantity: float = Field(nullable=False)
@@ -22,11 +24,14 @@ class Quotation(SQLModel, table=True):
     __tablename__ = "quotation"
 
     id: Optional[int] = Field(default=None, primary_key=True)
-    supplier_id: Optional [int] = Field(foreign_key="supplier.id", nullable=False)
+    supplier_id: Optional[int] = Field(
+        foreign_key="supplier.id", nullable=False)
     rfq_id: int = Field(foreign_key="rfq.id", nullable=False)
-    price: float = Field(nullable=False)
-    quantity: float = Field(nullable=False)
+    price: Optional[float] = Field(default=None)
+    quantity: Optional[float] = Field(default=None)
     selected: bool = Field(default=False)
-    delivery_date: datetime = Field(default_factory=datetime.utcnow)
+    delivery_date: Optional[datetime] = Field(
+        default_factory=datetime.utcnow, default=None)
     created_at: datetime = Field(default_factory=datetime.utcnow)
-    created_by: Optional[uuid.UUID] = Field(foreign_key="user_roles.user_id", default=None)
+    created_by: Optional[uuid.UUID] = Field(
+        foreign_key="user_roles.user_id", default=None)

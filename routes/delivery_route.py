@@ -39,15 +39,15 @@ async def get_deliveries_assigned_to_a_specific_driver_used_in_mobile_app(sessio
     if current_user.get("user_role") not in ["admin", "warehouse", "sales", "driver"]:
         return HTTPException(status_code=400, detail="You do not have the required permissions to view deliveries")
     ready_deliveries = session.exec(select(Delivery).where(Delivery.organization_id == current_user.get("user_metadata").get("organization_id"))
-                        .distinct()
-                        .where(Delivery.driver_id == driver_id)
-                        .join(DeliveryStatusUpdate)
-                        .where(or_(DeliveryStatusUpdate.delivery_status == "Packed", DeliveryStatusUpdate.delivery_status == "In Transit", DeliveryStatusUpdate.delivery_status == "Delayed"))
-                        ).all()
+                                    .distinct()
+                                    .where(Delivery.driver_id == driver_id)
+                                    .join(DeliveryStatusUpdate)
+                                    .where(or_(DeliveryStatusUpdate.delivery_status == "Packed", DeliveryStatusUpdate.delivery_status == "In Transit", DeliveryStatusUpdate.delivery_status == "Delayed"))
+                                    ).all()
     delivered = session.exec(select(Delivery.id)
-                        .where(Delivery.organization_id == current_user.get("user_metadata").get("organization_id"))
-                        .where(Delivery.driver_id == driver_id)
-                        .join(DeliveryStatusUpdate).where(DeliveryStatusUpdate.delivery_status == "Delivered")).all()
+                             .where(Delivery.organization_id == current_user.get("user_metadata").get("organization_id"))
+                             .where(Delivery.driver_id == driver_id)
+                             .join(DeliveryStatusUpdate).where(DeliveryStatusUpdate.delivery_status == "Delivered")).all()
     final = []
     for d in ready_deliveries:
         if d.id not in delivered:
@@ -66,6 +66,14 @@ async def get_deliveries_that_a_specific_driver_has_delivered(session: SessionDe
 
 
 @dr.get("/delivery")
+async def get_delivery_by_id(session: SessionDep, current_user: UserDep, delivery_id: int):
+    if current_user.get("user_role") not in ["admin", "driver", "warehouse", "sales"]:
+        return HTTPException(status_code=400, detail="You do not have the required permissions to view a delivery")
+    return session.exec(select(Delivery).where(Delivery.id == delivery_id).where(
+        Delivery.organization_id == current_user.get("user_metadata").get("organization_id"))).first()
+
+
+@dr.get("/delivery_source")
 async def get_delivery_by_id(session: SessionDep, current_user: UserDep, delivery_id: int):
     if current_user.get("user_role") not in ["admin", "driver", "warehouse", "sales"]:
         return HTTPException(status_code=400, detail="You do not have the required permissions to view a delivery")

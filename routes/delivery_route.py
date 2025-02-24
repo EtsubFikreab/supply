@@ -1,7 +1,7 @@
 from fastapi import Depends, HTTPException, Form
 from typing import Annotated
 from fastapi.routing import APIRouter
-from sqlmodel import select, Session, or_
+from sqlmodel import select, Session, or_, and_
 
 from auth import get_current_user
 from db import get_session
@@ -9,6 +9,7 @@ from model.delivery import Delivery, DeliveryStatusUpdate, GPSCoordinates
 from model.orders import Order, OrderItem
 from model.product import Product
 from model.viewmodel import DeliveryAndStatus
+from model.warehouse import Warehouse
 
 SessionDep = Annotated[Session, Depends(get_session)]
 UserDep = Annotated[dict, Depends(get_current_user)]
@@ -74,11 +75,15 @@ async def get_delivery_by_id(session: SessionDep, current_user: UserDep, deliver
 
 
 @dr.get("/delivery_source")
-async def get_delivery_by_id(session: SessionDep, current_user: UserDep, delivery_id: int):
+async def get_warehouse_of_delivery(session: SessionDep, current_user: UserDep, delivery_id: int):
     if current_user.get("user_role") not in ["admin", "driver", "warehouse", "sales"]:
         return HTTPException(status_code=400, detail="You do not have the required permissions to view a delivery")
-    return session.exec(select(Delivery).where(Delivery.id == delivery_id).where(
-        Delivery.organization_id == current_user.get("user_metadata").get("organization_id"))).first()
+    return session.exec(select(Warehouse)
+                        .join(Product)
+                        .join(OrderItem)
+                        .join(Order)
+                        .join(Delivery)
+                        .where(Delivery.id == delivery_id)).first()
 
 
 @dr.post("/create_delivery")

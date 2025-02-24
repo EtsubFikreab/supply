@@ -30,8 +30,7 @@ class Quotation(SQLModel, table=True):
     price: Optional[float] = Field(default=None)
     quantity: Optional[float] = Field(default=None)
     selected: bool = Field(default=False)
-    delivery_date: Optional[datetime] = Field(
-        default_factory=datetime.utcnow, default=None)
+    delivery_date: Optional[datetime] = Field(default=None)
     created_at: datetime = Field(default_factory=datetime.utcnow)
     created_by: Optional[uuid.UUID] = Field(
         foreign_key="user_roles.user_id", default=None)

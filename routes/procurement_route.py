@@ -1,6 +1,7 @@
 import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
+from uuid import UUID
 
 from fastapi import Depends, HTTPException, Form
 from typing import Annotated
@@ -24,6 +25,13 @@ async def get_request_for_rfqs(session: SessionDep, current_user: UserDep):
     if current_user.get("user_role") not in ["admin", "procurer", "supplier"]:
         return HTTPException(status_code=400, detail="You do not have the required permissions to view request for quotation")
     return session.exec(select(RFQ).where(RFQ.organization_id == current_user.get("user_metadata").get("organization_id"))).all()
+
+
+@pr.get("/rfq_by_id")
+async def get_request_for_rfqs(session: SessionDep, current_user: UserDep, rfq_id: int):
+    if current_user.get("user_role") not in ["admin", "procurer", "supplier"]:
+        return HTTPException(status_code=400, detail="You do not have the required permissions to view request for quotation")
+    return session.exec(select(RFQ).where(RFQ.organization_id == current_user.get("user_metadata").get("organization_id")).where(RFQ.id == rfq_id)).all()
 
 
 @pr.post("/create_rfq")
@@ -91,6 +99,13 @@ async def get_quotations(session: SessionDep, current_user: UserDep, rfq_id: int
     if not rfq:
         return HTTPException(status_code=400, detail="RFQ does not exist.")
     return session.exec(select(Quotation).where(Quotation.rfq_id == rfq_id)).all()
+
+
+@pr.get("/quotations_by_supplier")
+async def get_quotations_by_supplier(session: SessionDep, current_user: UserDep, supplier_id: UUID):
+    if current_user.get("user_role") not in ["admin", "procurer", "supplier"]:
+        return HTTPException(status_code=400, detail="You do not have the required permissions to view quotations")
+    return session.exec(select(Quotation).join(Supplier).where(Supplier.user_id == supplier_id).where(Quotation.supplier_id == Supplier.id)).all()
 
 
 @pr.post("/create_quotation")

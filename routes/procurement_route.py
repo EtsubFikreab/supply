@@ -101,11 +101,11 @@ async def get_quotations(session: SessionDep, current_user: UserDep, rfq_id: int
     return session.exec(select(Quotation).where(Quotation.rfq_id == rfq_id)).all()
 
 
-@pr.get("/quotations_by_supplier")
-async def get_quotations_by_supplier(session: SessionDep, current_user: UserDep, supplier_id: UUID):
+@pr.get("/quotations_of_supplier")
+async def get_quotations_made_by_the_supplier(session: SessionDep, current_user: UserDep):
     if current_user.get("user_role") not in ["admin", "procurer", "supplier"]:
         return HTTPException(status_code=400, detail="You do not have the required permissions to view quotations")
-    return session.exec(select(Quotation).join(Supplier).where(Supplier.user_id == supplier_id).where(Quotation.supplier_id == Supplier.id)).all()
+    return session.exec(select(Quotation).join(Supplier).where(Supplier.user_id == current_user.get("sub")).where(Quotation.supplier_id == Supplier.id)).all()
 
 
 @pr.post("/create_quotation")

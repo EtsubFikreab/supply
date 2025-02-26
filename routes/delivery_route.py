@@ -83,7 +83,7 @@ async def get_warehouse_of_delivery(session: SessionDep, current_user: UserDep, 
                         .join(OrderItem)
                         .join(Order)
                         .join(Delivery)
-                        .where(Delivery.id == delivery_id)).first()
+                        .where(Delivery.id == delivery_id)).all()
 
 
 @dr.post("/create_delivery")

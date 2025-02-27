@@ -14,14 +14,14 @@ app = FastAPI()
 
 
 app.middleware("http")(auth_middleware)
-app.include_router(auth_router, prefix="/auth")
-app.include_router(admin_router, prefix="/admin")
-app.include_router(user_router, prefix="/user")
-app.include_router(procurement_router, prefix="/procurement")
-app.include_router(general_router)
-app.include_router(sales_router, prefix="/sales")
-app.include_router(delivery_router, prefix="/delivery")
-app.include_router(dashboard_router, prefix="/dashboard")
+app.include_router(auth_router, prefix="/auth", tags=["auth"])
+app.include_router(admin_router, prefix="/admin", tags=["admin"])
+app.include_router(user_router, prefix="/user", tags=["user"])
+app.include_router(procurement_router, prefix="/procurement", tags=["procurement"])
+app.include_router(general_router, tags=["general"])
+app.include_router(sales_router, prefix="/sales", tags=["sales"])
+app.include_router(delivery_router, prefix="/delivery", tags=["delivery"])
+app.include_router(dashboard_router, prefix="/dashboard", tags=["dashboard"])
 
 app.get("/")
 def root():

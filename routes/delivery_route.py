@@ -247,13 +247,14 @@ async def status_update_delivery_has_arrived_at_its_destination(session: Session
 
 
 @dr.post("/delivery_delay")
-async def status_update_delivery_has_arrived_at_its_destination(session: SessionDep, current_user: UserDep, delivery_id: int):
+async def status_update_delivery_has_arrived_at_its_destination(session: SessionDep, current_user: UserDep, delivery_id: int, note: str):
     if current_user.get("user_role") not in ["admin", "driver", "warehouse"]:
         return HTTPException(status_code=400, detail="You do not have the required permissions to update a delivery")
     try:
         delivery_status_update: DeliveryStatusUpdate = DeliveryStatusUpdate()
         delivery_status_update.delivery_id = delivery_id
         delivery_status_update.delivery_status = "Delayed"
+        delivery_status_update.notes = note
         session.add(delivery_status_update)
         session.commit()
         session.refresh(delivery_status_update)

@@ -40,3 +40,10 @@ class ClientOrder(SQLModel, table=False):
 class DeliveryAndStatus(SQLModel, table=False):
     delivery: Optional[Sequence[Delivery]] = Field(default=None)
     delivery_status: Optional[list[str]] = Field(default=None)
+
+
+class DeliveryAndStatus(SQLModel, table=False):
+    id: Optional[int] = Field(default=None)
+    destination_longitude: Optional[float] = Field(default=None)
+    destination_latitude: Optional[float] = Field(default=None)
+    delivery_status: Optional[str] = Field(default=None)

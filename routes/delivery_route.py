@@ -39,6 +39,7 @@ async def get_all_deliveries(session: SessionDep, current_user: UserDep):
 async def get_deliveries_assigned_to_a_specific_driver_used_in_mobile_app(session: SessionDep, current_user: UserDep, driver_id: int):
     if current_user.get("user_role") not in ["admin", "warehouse", "sales", "driver"]:
         return HTTPException(status_code=400, detail="You do not have the required permissions to view deliveries")
+    delivery_model: DeliveryAndStatus
     ready_deliveries = session.exec(select(Delivery).where(Delivery.organization_id == current_user.get("user_metadata").get("organization_id"))
                                     .distinct()
                                     .where(Delivery.driver_id == driver_id)
@@ -52,7 +53,13 @@ async def get_deliveries_assigned_to_a_specific_driver_used_in_mobile_app(sessio
     final = []
     for d in ready_deliveries:
         if d.id not in delivered:
-            final.append(d)
+            delivery_model = DeliveryAndStatus()
+            delivery_model.id = d.id
+            delivery_model.destination_longitude = d.destination_longitude
+            delivery_model.destination_latitude = d.destination_latitude
+            delivery_model.delivery_status = session.exec(select(DeliveryStatusUpdate.delivery_status).where(
+                DeliveryStatusUpdate.delivery_id == d.id).order_by(DeliveryStatusUpdate.timestamp.desc())).first()
+            final.append(delivery_model)
     return final
 
 

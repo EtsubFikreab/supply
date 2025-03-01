@@ -12,6 +12,7 @@ from model.orders import Transaction, Order
 from model.organization import UserOrganization
 from model.product import Product
 from model.user import Driver
+from model.rfq import RFQ, Quotation
 
 SessionDep = Annotated[Session, Depends(get_session)]
 UserDep = Annotated[dict, Depends(get_current_user)]
@@ -60,6 +61,7 @@ async def get_total_shipments(session: SessionDep, current_user: UserDep):
         Delivery.organization_id == current_user.get("user_metadata").get("organization_id"))).all()
     return len(shipments)
 
+
 @dr.get("/total_shipments_today")
 async def get_total_shipments_that_were_made_today(session: SessionDep, current_user: UserDep):
     if current_user.get("user_role") not in ["admin"]:
@@ -75,6 +77,7 @@ async def get_total_shipments_that_were_made_today(session: SessionDep, current_
             today_shipments.append(shipment)
     return len(today_shipments)
 
+
 @dr.get("/total_orders_today")
 async def get_total_orders_that_were_made_today(session: SessionDep, current_user: UserDep):
     if current_user.get("user_role") not in ["admin"]:
@@ -88,6 +91,7 @@ async def get_total_orders_that_were_made_today(session: SessionDep, current_use
             today_orders.append(order)
     return len(today_orders)
 
+
 @dr.get("/total_products")
 async def get_total_products(session: SessionDep, current_user: UserDep):
     if current_user.get("user_role") not in ["admin"]:
@@ -95,3 +99,15 @@ async def get_total_products(session: SessionDep, current_user: UserDep):
     products = session.exec(select(Product).where(
         Product.organization_id == current_user.get("user_metadata").get("organization_id"))).all()
     return len(products)
+
+
+@dr.get("/total_expense")
+async def get_total_expense(session: SessionDep, current_user: UserDep):
+    if current_user.get("user_role") not in ["admin"]:
+        return HTTPException(status_code=400, detail="You do not have the required permissions to view sales")
+    quotes = session.exec(select(Quotation).where(Quotation.selected == True).join(RFQ).where(
+        RFQ.organization_id == current_user.get("user_metadata").get("organization_id"))).all()
+    total_expense = 0.0
+    for quote in quotes:
+        total_expense += quote.price*quote.quantity
+    return total_expense

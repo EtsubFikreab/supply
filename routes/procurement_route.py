@@ -180,10 +180,11 @@ async def select_quotation(session: SessionDep, current_user: UserDep, quotation
         session.add(db_quotation)
         session.commit()
         session.refresh(db_quotation)
+        return db_quotation
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
     # Send email to supplier
-    try:
+"""  try:
         supplier = session.exec(select(Supplier).where(
             Supplier.id == db_quotation.supplier_id)).first()
         if supplier and supplier.email:
@@ -204,8 +205,7 @@ async def select_quotation(session: SessionDep, current_user: UserDep, quotation
                 server.sendmail(sender_email, receiver_email,
                                 message.as_string())
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-    return db_quotation
+        raise HTTPException(status_code=500, detail=str(e)) """
 
 
 @pr.post("/product_delivered")

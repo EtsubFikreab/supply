@@ -59,6 +59,7 @@ async def get_deliveries_assigned_to_a_specific_driver_used_in_mobile_app(sessio
             delivery_model.destination_latitude = d.destination_latitude
             delivery_model.delivery_status = session.exec(select(DeliveryStatusUpdate.delivery_status).where(
                 DeliveryStatusUpdate.delivery_id == d.id).order_by(DeliveryStatusUpdate.timestamp.desc())).first()
+            delivery_model.delivery_instructions = d.delivery_instructions
             final.append(delivery_model)
     return final
 
@@ -116,7 +117,6 @@ async def update_delivery(session: SessionDep, current_user: UserDep, new_delive
     if not db_delivery:
         return HTTPException(status_code=400, detail="Delivery does not exist.")
     try:
-        db_delivery.driver_id = new_delivery.driver_id
         db_delivery.destination_longitude = new_delivery.destination_longitude
         db_delivery.destination_latitude = new_delivery.destination_latitude
         db_delivery.delivery_instructions = new_delivery.delivery_instructions
@@ -134,6 +134,25 @@ async def update_delivery(session: SessionDep, current_user: UserDep, new_delive
             session.add(delivery_status_update)
             session.commit()
 
+        session.refresh(db_delivery)
+        return db_delivery
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@dr.post("/add_client_signature")
+async def add_the_client_signature(session: SessionDep, current_user: UserDep, delivery_id: int, signature: str):
+    if current_user.get("user_role") not in ["admin", "warehouse"]:
+        return HTTPException(status_code=400, detail="You do not have the required permissions to update a delivery")
+    db_delivery = session.exec(select(Delivery).where(Delivery.id == delivery_id).where(
+        Delivery.organization_id == current_user.get("user_metadata").get("organization_id"))).first()
+    if not db_delivery:
+        return HTTPException(status_code=400, detail="Delivery does not exist.")
+    try:
+        db_delivery.client_signature = signature
+
+        session.add(db_delivery)
+        session.commit()
         session.refresh(db_delivery)
         return db_delivery
     except Exception as e:

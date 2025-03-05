@@ -118,6 +118,7 @@ async def update_delivery(session: SessionDep, current_user: UserDep, new_delive
     if not db_delivery:
         return HTTPException(status_code=400, detail="Delivery does not exist.")
     try:
+        db_delivery.driver_id = new_delivery.driver_id
         db_delivery.destination_longitude = new_delivery.destination_longitude
         db_delivery.destination_latitude = new_delivery.destination_latitude
         db_delivery.delivery_instructions = new_delivery.delivery_instructions

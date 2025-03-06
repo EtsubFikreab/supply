@@ -144,7 +144,7 @@ async def update_delivery(session: SessionDep, current_user: UserDep, new_delive
 
 @dr.post("/add_client_signature")
 async def add_the_client_signature(session: SessionDep, current_user: UserDep, delivery_id: int, signature: str):
-    if current_user.get("user_role") not in ["admin", "warehouse"]:
+    if current_user.get("user_role") not in ["admin", "warehouse", "driver"]:
         return HTTPException(status_code=400, detail="You do not have the required permissions to update a delivery")
     db_delivery = session.exec(select(Delivery).where(Delivery.id == delivery_id).where(
         Delivery.organization_id == current_user.get("user_metadata").get("organization_id"))).first()

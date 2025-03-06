@@ -47,5 +47,6 @@ class DeliveryAndStatus(SQLModel, table=False):
     order_id: Optional[int] = Field(default=None)
     destination_longitude: Optional[float] = Field(default=None)
     destination_latitude: Optional[float] = Field(default=None)
+    destination_name: Optional[str] = Field(default=None)
     delivery_status: Optional[str] = Field(default=None)
     delivery_instructions: Optional[str] = Field(default=None)

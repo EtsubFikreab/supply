@@ -56,6 +56,7 @@ async def get_deliveries_assigned_to_a_specific_driver_used_in_mobile_app(sessio
             delivery_model = DeliveryAndStatus()
             delivery_model.id = d.id
             delivery_model.order_id = d.order_id
+            delivery_model.destination_name = d.destination_name
             delivery_model.destination_longitude = d.destination_longitude
             delivery_model.destination_latitude = d.destination_latitude
             delivery_model.delivery_status = session.exec(select(DeliveryStatusUpdate.delivery_status).where(

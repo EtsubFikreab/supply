@@ -337,7 +337,17 @@ async def create_gps_coordinate_update_this_is_done_by_driver(session: SessionDe
 async def get_shipment_details(session: SessionDep, current_user: UserDep):
     if current_user.get("user_role") not in ["admin", "warehouse", "sales", "driver"]:
         return HTTPException(status_code=400, detail="You do not have the required permissions to view shipment details")
-    return session.exec(select(ShipmentDelivery)).all()
+    return session.exec(select(ShipmentDelivery).where(ShipmentDelivery.organization_id == current_user.get("user_metadata").get("organization_id"))).all()
+
+
+@dr.get("/get_container_shipment_id")
+async def get_shipment_details(session: SessionDep, current_user: UserDep, id: int):
+    if current_user.get("user_role") not in ["admin", "warehouse", "sales", "driver"]:
+        return HTTPException(status_code=400, detail="You do not have the required permissions to view shipment details")
+    try:
+        return session.exec(select(ShipmentDelivery).where(ShipmentDelivery.id == id)).first()
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 
 @dr.post("/create_container_shipment")

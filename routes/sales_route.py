@@ -195,9 +195,14 @@ async def add_multiple_order_items_for_an_order(session: SessionDep, current_use
         return HTTPException(status_code=400, detail="You do not have the required permissions to view sales order total")
     for i in range(len(order_items)):
         order_items[i].id = None
-        order_items[i].price = session.exec(select(Product).where(
-            Product.id == order_items[i].product_id)).first().sales_price
+        product: Product = session.exec(select(Product).where(
+            Product.id == order_items[i].product_id)).first()
+        order_items[i].price = product.sales_price
         session.add(order_items[i])
+        session.commit()
+        
+        product.quantity -= order_items[i].quantity
+        session.add(product)
         session.commit()
     return "Items Added Successfully"
 
@@ -283,7 +288,7 @@ async def order_successfully_paid_and_ready_for_delivery(session: SessionDep, cu
         return HTTPException(status_code=400, detail="Order does not exist.")
     if order.status == "Succeeded":
         return HTTPException(status_code=400, detail="Order already paid.")
-    
+
     order.status = "Succeeded"
     session.add(order)
     session.commit()

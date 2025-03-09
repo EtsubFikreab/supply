@@ -222,21 +222,6 @@ async def status_update_order_is_ready_for_delivery(session: SessionDep, current
         delivery_status_update.delivery_status = "Packed"
         session.add(delivery_status_update)
         session.commit()
-
-        delivery = session.exec(select(Delivery).where(
-            Delivery.id == delivery_id)).first()
-        order = session.exec(select(Order).where(
-            Order.id == delivery.order_id)).first()
-        order_items = session.exec(select(OrderItem).where(
-            OrderItem.order_id == order.id)).all()
-
-        for order_item in order_items:
-            product = session.exec(select(Product).where(
-                Product.id == order_item.product_id)).first()
-            product.quantity -= order_item.quantity
-            session.add(product)
-            session.commit()
-
         session.refresh(delivery_status_update)
         return delivery_status_update
     except Exception as e:

@@ -5,7 +5,7 @@ from sqlmodel import select, Session, or_, and_
 
 from auth import get_current_user
 from db import get_session
-from model.delivery import Delivery, DeliveryStatusUpdate, GPSCoordinates
+from model.delivery import Delivery, DeliveryStatusUpdate, GPSCoordinates, ShipmentDelivery
 from model.orders import Order, OrderItem
 from model.product import Product
 from model.viewmodel import DeliveryAndStatus
@@ -329,5 +329,64 @@ async def create_gps_coordinate_update_this_is_done_by_driver(session: SessionDe
         session.commit()
         session.refresh(gps)
         return gps
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@dr.get("/get_container_shipment")
+async def get_shipment_details(session: SessionDep, current_user: UserDep):
+    if current_user.get("user_role") not in ["admin", "warehouse", "sales", "driver"]:
+        return HTTPException(status_code=400, detail="You do not have the required permissions to view shipment details")
+    return session.exec(select(ShipmentDelivery)).all()
+
+
+@dr.post("/create_container_shipment")
+async def create_shipment_details(session: SessionDep, current_user: UserDep, ship: ShipmentDelivery = Form(...)):
+    if current_user.get("user_role") not in ["admin", "procurement", "sales"]:
+        return HTTPException(status_code=400, detail="You do not have the required permissions to view shipment details")
+    try:
+        ship.id = None
+        ship.organization_id = current_user.get(
+            "user_metadata").get("organization_id")
+        if ship.description == "" or ship.description == "null":
+            ship.description = None
+        session.add(ship)
+        session.commit()
+        session.refresh(ship)
+        return ship
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@dr.post("/update_container_shipment")
+async def update_shipment_details(session: SessionDep, current_user: UserDep, ship: ShipmentDelivery = Form(...)):
+    if current_user.get("user_role") not in ["admin", "procurement", "sales"]:
+        return HTTPException(status_code=400, detail="You do not have the required permissions to view shipment details")
+    try:
+        db_ship: ShipmentDelivery = session.exec(
+            select(ShipmentDelivery).where(ShipmentDelivery.id == ship.id)).first()
+        db_ship.source = ship.source
+        db_ship.warehouse_id = ship.warehouse_id
+        db_ship.container_number = ship.container_number
+        db_ship.description = ship.description
+        db_ship.driver_id = ship.driver_id
+        session.add(db_ship)
+        session.commit()
+        session.refresh(db_ship)
+        return db_ship
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@dr.delete("/delete_container_shipment")
+async def delete_shipment_details(session: SessionDep, current_user: UserDep, id: int):
+    if current_user.get("user_role") not in ["admin", "procurement", "sales"]:
+        return HTTPException(status_code=400, detail="You do not have the required permissions to view shipment details")
+    try:
+        db_ship: ShipmentDelivery = session.exec(
+            select(ShipmentDelivery).where(ShipmentDelivery.id == id)).first()
+        session.delete(db_ship)
+        session.commit()
+        return "Container Shipment Deleted"
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))

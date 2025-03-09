@@ -10,7 +10,11 @@ from routes.procurement_route import procurement_router
 from routes.sales_route import sales_router
 from routes.user_route import user_router
 
-app = FastAPI()
+app = FastAPI(title="Supply Chain and Logistics API",
+    version="0.1",
+    description="This is a Supply Chain and Logistics API, includes routes for user, admin, procurement, sales, delivery, and dashboard.",
+    swagger_ui_parameters={"docExpansion": "none", "tryItOutEnabled": True}
+)
 
 
 app.middleware("http")(auth_middleware)

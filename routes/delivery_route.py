@@ -5,7 +5,7 @@ from sqlmodel import select, Session, or_, and_
 
 from auth import get_current_user
 from db import get_session
-from model.delivery import Delivery, DeliveryStatusUpdate, GPSCoordinates, ShipmentDelivery
+from model.delivery import Delivery, DeliveryStatusUpdate, GPSCoordinates, ShipmentDelivery, ShipmentTracking
 from model.orders import Order, OrderItem
 from model.product import Product
 from model.viewmodel import DeliveryAndStatus
@@ -390,3 +390,59 @@ async def delete_shipment_details(session: SessionDep, current_user: UserDep, id
         return "Container Shipment Deleted"
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
+
+
+@dr.get("/get_shipment_tracking")
+async def get_shipment_tracking(session: SessionDep, current_user: UserDep):
+    if current_user.get("user_role") not in ["admin", "warehouse", "sales", "driver"]:
+        return HTTPException(status_code=400, detail="You do not have the required permissions to view shipment tracking details")
+    return session.exec(select(ShipmentTracking)).all()
+
+
+@dr.post("/create_shipment_tracking")
+async def create_shipment_tracking(session: SessionDep, current_user: UserDep, shipmentTracking: ShipmentTracking = Form(...)):
+    if current_user.get("user_role") not in ["admin", "warehouse", "sales", "driver"]:
+        return HTTPException(status_code=400, detail="You do not have the required permissions to view shipment tracking details")
+    try:
+        shipmentTracking.id = None
+        session.add(shipmentTracking)
+        session.commit()
+        session.refresh(shipmentTracking)
+        return shipmentTracking
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=srt(e))
+
+
+@dr.post("/update_shipment_tracking")
+async def update_shipment_tracking(session: SessionDep, current_user: UserDep, shipmentTracking: ShipmentTracking = Form(...)):
+    if current_user.get("user_role") not in ["admin", "warehouse", "sales", "driver"]:
+        return HTTPException(status_code=400, detail="You do not have the required permissions to view shipment tracking details")
+    try:
+        db_st = session.exec(select(ShipmentTracking).where(
+            ShipmentTracking.id == shipmentTracking.id)).first()
+        db_st.shipment_delivery_id = shipmentTracking.shipment_delivery_id
+        db_st.detail = shipmentTracking.detail
+        db_st.latitude = shipmentTracking.latitude
+        db_st.longitude = shipmentTracking.longitude
+
+        session.add(db_st)
+        session.commit()
+        session.refresh(db_st)
+        return db_st
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@dr.post("/delete_shipment_tracking")
+async def delete_shipment_tracking(session: SessionDep, current_user: UserDep, id: int):
+    if current_user.get("user_role") not in ["admin", "warehouse", "sales", "driver"]:
+        return HTTPException(status_code=400, detail="You do not have the required permissions to view shipment tracking details")
+    try:
+        db_st = session.exec(select(ShipmentTracking).where(
+            ShipmentTracking.id == id)).first()
+
+        session.delete(db_st)
+        session.commit()
+        return "Shipment Tracking Deleted"
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=srt(e))

@@ -13,6 +13,7 @@ from model.organization import UserOrganization
 from model.product import Product
 from model.user import Driver
 from model.rfq import RFQ, Quotation
+from model.warehouse import Warehouse
 
 SessionDep = Annotated[Session, Depends(get_session)]
 UserDep = Annotated[dict, Depends(get_current_user)]
@@ -98,6 +99,15 @@ async def get_total_products(session: SessionDep, current_user: UserDep):
         return HTTPException(status_code=400, detail="You do not have the required permissions to view sales")
     products = session.exec(select(Product).where(
         Product.organization_id == current_user.get("user_metadata").get("organization_id"))).all()
+    return len(products)
+
+
+@dr.get("/total_warehouse")
+async def get_total_products(session: SessionDep, current_user: UserDep):
+    if current_user.get("user_role") not in ["admin"]:
+        return HTTPException(status_code=400, detail="You do not have the required permissions to view sales")
+    products = session.exec(select(Warehouse).where(
+        Warehouse.organization_id == current_user.get("user_metadata").get("organization_id"))).all()
     return len(products)
 
 
